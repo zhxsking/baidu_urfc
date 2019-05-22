@@ -75,7 +75,8 @@ if __name__ == '__main__':
     best_acc = 0.0
     best_epoch = 1
     best_model = copy.deepcopy(net.state_dict())
-
+    
+    # 训练
     for epoch in range(opt.epochs):
         loss_temp_train = 0.0
         acc_temp_train = 0.0
@@ -113,7 +114,7 @@ if __name__ == '__main__':
             best_acc = acc_temp_val
             best_model = copy.deepcopy(net.state_dict())
             early_stop = 0
-        elif epoch > 0 :
+        elif epoch > 0:
             early_stop += 1
             if early_stop == opt.early_stop_num: break
         

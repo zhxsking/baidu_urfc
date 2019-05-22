@@ -104,6 +104,7 @@ if __name__ == '__main__':
     opt = Option()
     getSampleTxt(opt.dir_img)
     visit2npy(opt.dir_visit, opt.dir_visit_npy)
+    visit2npy(opt.dir_visit_test, opt.dir_visit_npy_test)
         
     
     
