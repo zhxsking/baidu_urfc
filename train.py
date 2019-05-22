@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 import sys
 import os 
 import copy
@@ -94,6 +95,8 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            
+            print(loss.item())
             
             _, preds = torch.max(out, 1)
             loss_temp_train += loss.item()

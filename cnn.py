@@ -11,46 +11,46 @@ class CNN(nn.Module):
         """参数分别为输入图像深度、高、宽"""
         super().__init__()
         self.conv1 = nn.Sequential(
-                nn.Conv2d(in_depth1, 64, kernel_size=3, padding=1),
+                nn.Conv2d(in_depth1, 16, kernel_size=3, padding=1),
+                nn.BatchNorm2d(16),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(2),
+                
+                nn.Conv2d(16, 32, kernel_size=3, padding=1),
+                nn.BatchNorm2d(32),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(2),
+                
+                nn.Conv2d(32, 64, kernel_size=3, padding=1),
                 nn.BatchNorm2d(64),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(2),
                 
-                nn.Conv2d(64, 128, kernel_size=3, padding=1),
-                nn.BatchNorm2d(128),
-                nn.ReLU(inplace=True),
-                nn.MaxPool2d(2),
-                
-                nn.Conv2d(128, 128, kernel_size=3, padding=1),
-                nn.BatchNorm2d(128),
-                nn.ReLU(inplace=True),
-                nn.MaxPool2d(2),
-                
-                nn.Conv2d(128, 256, kernel_size=3, padding=1),
-                nn.BatchNorm2d(256),
+                nn.Conv2d(64, 64, kernel_size=3, padding=1),
+                nn.BatchNorm2d(64),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(2),
                 )
         self.conv2 = nn.Sequential(
-                nn.Conv2d(in_depth2, 64, kernel_size=3, padding=1),
-                nn.BatchNorm2d(64),
+                nn.Conv2d(in_depth2, 16, kernel_size=3, padding=1),
+                nn.BatchNorm2d(16),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(2),
                 
-                nn.Conv2d(64, 128, kernel_size=3, padding=1),
-                nn.BatchNorm2d(128),
+                nn.Conv2d(16, 32, kernel_size=3, padding=1),
+                nn.BatchNorm2d(32),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(2),
                 )
         self.conv3 = nn.Sequential(
-                nn.Conv2d(256+128, 512, kernel_size=3, padding=1),
-                nn.BatchNorm2d(512),
+                nn.Conv2d(64+32, 128, kernel_size=3, padding=1),
+                nn.BatchNorm2d(128),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(2),
                 )
 #        self.drop = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(512*3*3, 1024)
-        self.fc2 = nn.Linear(1024, 9)
+        self.fc1 = nn.Linear(128*3*3, 256)
+        self.fc2 = nn.Linear(256, 9)
         
     def forward(self, x_img, x_visit):
         x_img = self.conv1(x_img)
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     net = CNN().to(device)
     
 #    from torchsummary import summary
-#    summary(net, (img_depth, img_height, img_width), (visit_depth, visit_height, visit_width))
+#    summary(net, ((img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)))
     
     test_x1 = torch.rand(1, img_depth, img_height, img_width).to(device)
     test_x2 = torch.rand(1, visit_depth, visit_height, visit_width).to(device)

@@ -38,7 +38,7 @@ class UrfcDataset(Dataset):
         img = transforms.ToTensor()(img)
         visit = transforms.ToTensor()(visit)
         
-        return img, visit, int(label_str)
+        return img, visit, int(label_str)-1
     
     def __len__(self):
         return len(self.data_names)
