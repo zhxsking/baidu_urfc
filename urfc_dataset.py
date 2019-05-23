@@ -27,15 +27,15 @@ class UrfcDataset(Dataset):
         
 
         # 标准化
-#        means = (0.57633764, 0.47007486, 0.3075999)
-#        stds =(0.2519291, 0.21737799, 0.17447254)
-#        img_process = transforms.Compose([
-#                transforms.ToTensor(),
-#                transforms.Normalize(means, stds),
-#                ])
-#        img = img_process(img)
+        means = (0.46832234, 0.53796417, 0.6216422)
+        stds =(0.1810789, 0.16477963, 0.14735216)
+        img_process = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(means, stds),
+                ])
+        img = img_process(img)
         
-        img = transforms.ToTensor()(img)
+#        img = transforms.ToTensor()(img)
         visit = transforms.ToTensor()(visit)
         
         return img, visit, int(label_str)-1

@@ -29,7 +29,6 @@ def evalNet(net, loss_func, dataloader_val, device):
             out = net(img, visit)
 
             loss = loss_func(out, out_gt)
-            
             _, preds = torch.max(out, 1)
             loss_temp += loss.item()
             acc_temp += (float(torch.sum(preds == out_gt.data)) / len(out_gt))
@@ -96,7 +95,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             
-            print(loss.item())
+#            print(loss.item())
             
             _, preds = torch.max(out, 1)
             loss_temp_train += loss.item()
