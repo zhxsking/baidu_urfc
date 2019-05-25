@@ -16,7 +16,7 @@ class UrfcDataset(Dataset):
         self.dir_img = dir_img
         self.dir_visit = dir_visit
         
-        data_list = list(pd.read_table(path_txt, header=None)[0])
+        data_list = list(pd.read_csv(path_txt, header=None)[0])
         self.data_names = [a.split('\\')[-1] for a in data_list]
         
     def __getitem__(self, index):
