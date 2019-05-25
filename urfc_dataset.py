@@ -25,17 +25,23 @@ class UrfcDataset(Dataset):
         img = Image.open(join(self.dir_img, label_str, self.data_names[index] + ".jpg"))
         visit = np.load(join(self.dir_visit, self.data_names[index] + ".npy"))
         
-
+        def subMean(x):
+            '''每张图减去均值，匀光'''
+            for i in range(3):
+                x[i,:,:] -= x[i,:,:].mean()
+            return x
+        
         # 标准化
-        means = (0.46832234, 0.53796417, 0.6216422)
-        stds =(0.1810789, 0.16477963, 0.14735216)
+#        means = (0.46832234, 0.53796417, 0.6216422)
+#        stds =(0.1810789, 0.16477963, 0.14735216)
+        means = (-1.3326176e-09, -5.8395827e-10, -1.153197e-10)
+        stds =(0.11115803, 0.09930103, 0.08884794)
         img_process = transforms.Compose([
                 transforms.ToTensor(),
+                transforms.Lambda(subMean),
                 transforms.Normalize(means, stds),
                 ])
         img = img_process(img)
-        
-#        img = transforms.ToTensor()(img)
         visit = transforms.ToTensor()(visit)
         
         return img, visit, int(label_str)-1
@@ -52,7 +58,7 @@ if __name__ == '__main__':
     
     opt = Option()
     dataset = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt")
-    dataloader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
+    dataloader = DataLoader(dataset=dataset, batch_size=3, shuffle=True)
     
     for cnt, (img, visit, lab) in enumerate(dataloader, 1):
         print(lab)
