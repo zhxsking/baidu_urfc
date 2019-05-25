@@ -81,7 +81,7 @@ if __name__ == '__main__':
         loss_temp_train = 0.0
         acc_temp_train = 0.0
         net.train()
-        scheduler.step()
+#        scheduler.step()
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
             img = img.to(opt.device)
             visit = visit.to(opt.device)

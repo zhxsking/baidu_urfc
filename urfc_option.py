@@ -8,7 +8,7 @@ class Option():
         self.epochs = 50
         self.lr = 1e-3
         self.batchsize = 1024 # 128 1024
-        self.weight_decay = 0.000
+        self.weight_decay = 0.00
         self.early_stop_num = 150 # acc在多少个epoch下都不提升就提前结束训练
         self.workers = 4 # 4 多进程，可能会卡程序
         self.pretrained = False
