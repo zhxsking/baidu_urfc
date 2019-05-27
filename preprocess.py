@@ -8,6 +8,7 @@ from os.path import join
 import datetime
 from tqdm import tqdm
 import random
+import matplotlib.pyplot as plt
 
 from urfc_option import Option
 
@@ -89,6 +90,8 @@ def visit2npy(dir_visit, dir_visit_npy):
     # 初始化保存目录
     if not os.path.exists(dir_visit_npy):
         os.makedirs(dir_visit_npy)
+    else:
+        return
     
     visit_names = os.listdir(dir_visit)
     
@@ -98,6 +101,26 @@ def visit2npy(dir_visit, dir_visit_npy):
         visit_array = visit2array(visit_table)
         path_visit_npy = join(dir_visit_npy, visit_name.split('.')[0] + ".npy")
         np.save(path_visit_npy, visit_array)
+
+def img2npy(dir_img, dir_img_npy):
+    '''将图片转换为npy文件'''
+    
+    # 初始化保存目录
+    if not os.path.exists(dir_img_npy):
+        os.makedirs(dir_img_npy)
+    else:
+        return
+    
+    pbar = tqdm(total=40000, desc='img2npy: ')
+    
+    dirs = sorted(os.listdir(dir_img))
+    for dir in dirs:
+        path = join(dir_img, dir)
+        for file in os.listdir(path):
+            pbar.update(1)
+            img = plt.imread(join(path, file))
+            np.save(join(dir_img_npy, file.split('.')[0] + ".npy"), img)
+    pbar.close()
 
 
 if __name__ == '__main__':
