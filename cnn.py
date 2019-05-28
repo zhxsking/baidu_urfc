@@ -43,7 +43,7 @@ class CNN(nn.Module):
                 nn.MaxPool2d(2),
                 )
         self.conv3 = nn.Sequential(
-                nn.Conv2d(64+32, 128, kernel_size=3, padding=1),
+                nn.Conv2d(32, 128, kernel_size=3, padding=1),
                 nn.BatchNorm2d(128),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(2),
@@ -52,11 +52,11 @@ class CNN(nn.Module):
         self.fc = nn.Linear(128, 9)
         
     def forward(self, x_img, x_visit):
-        x_img = self.conv1(x_img)
+#        x_img = self.conv1(x_img)
         x_visit = self.conv2(x_visit)
         
-        x = torch.cat((x_img, x_visit), dim=1)
-        x = self.conv3(x)
+#        x = torch.cat((x_img, x_visit), dim=1)
+        x = self.conv3(x_visit)
         
         x = self.avgpool(x)
         x = x.reshape(x.size(0), -1)
@@ -64,18 +64,68 @@ class CNN(nn.Module):
         x = F.log_softmax(x, dim=1)
         return x
 
+class mResNet18(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+        mdl = models.resnet18(pretrained=pretrained)
+        
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+                               bias=False)
+        self.bn1 = mdl.bn1
+        self.relu = mdl.relu
+        self.maxpool = mdl.maxpool
+        
+        self.layer1 = mdl.layer1
+        self.layer2 = mdl.layer2
+        self.layer3 = mdl.layer3
+        self.layer4 = mdl.layer4
+        
+        self.avgpool = mdl.avgpool
+        self.fc = nn.Linear(512, 9)
+        
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+        
+    def forward(self, x_img, x_visit):
+        
+        x = self.conv1(x_img)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+
+        x = self.avgpool(x)
+        x = x.reshape(x.size(0), -1)
+        x = self.fc(x)
+        
+        x = F.log_softmax(x, dim=1)
+        return x
+
+
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
     img_depth = 3
     img_height = 100
     img_width = 100
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = CNN().to(device)
+    net = mResNet18(pretrained=False).to(device)
+#    net = CNN().to(device)
     
-#    from torchsummary import summary
-#    summary(net, ((img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)))
+    from torchsummary import summary
+    summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
     
     test_x1 = torch.rand(1, img_depth, img_height, img_width).to(device)
     test_x2 = torch.rand(1, visit_depth, visit_height, visit_width).to(device)

@@ -13,7 +13,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from cnn import CNN
+from cnn import CNN, mResNet18
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
         
@@ -92,7 +92,8 @@ if __name__ == '__main__':
 #                                shuffle=True, num_workers=opt.workers)
     
     # 定义网络及其他
-    net = CNN().to(opt.device)
+#    net = CNN().to(opt.device)
+    net = mResNet18(pretrained=True).to(opt.device)
     loss_func = nn.NLLLoss().to(opt.device)
     optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1) # 动态改变lr
