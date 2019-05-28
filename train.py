@@ -2,9 +2,11 @@
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import TensorDataset, DataLoader
+import torchvision.transforms as transforms
 import sys
-import os 
+import os
+from os.path import join
 import copy
 import shutil
 import time
@@ -15,6 +17,22 @@ from cnn import CNN
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
         
+
+def imgProc(x, means, stds):
+    '''预处理'''
+    x = x.astype(np.float32) / 255.0 # 归一化
+    x = x.transpose(0,3,1,2)
+    x = torch.as_tensor(x, dtype=torch.float32)
+    
+    # 每张图减去均值，匀光
+    for i in range(3):
+        x[:,i,:,:] -= x[:,i,:,:].mean()
+    
+    # 标准化
+    mean = torch.as_tensor(means, dtype=torch.float32)
+    std = torch.as_tensor(stds, dtype=torch.float32)
+    
+    return x.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
 
 def evalNet(net, loss_func, dataloader_val, device):
     """用验证集评判网络性能"""
@@ -52,12 +70,31 @@ if __name__ == '__main__':
         os.makedirs('checkpoint')
     
     # 加载数据
-    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt")
-    dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
-                            shuffle=True, num_workers=opt.workers)   
-    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt")
-    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
-                                shuffle=True, num_workers=opt.workers)
+    imgs_train = np.load(join(opt.data_npy, "train-img.npy"))
+    imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
+    visits_train = np.load(join(opt.data_npy, "train-visit.npy"))
+    visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
+    labs_train = np.load(join(opt.data_npy, "train-label.npy"))
+    labs_val = np.load(join(opt.data_npy, "val-label.npy"))
+    
+    imgs_train = imgProc(imgs_train, opt.means, opt.stds)
+    imgs_val = imgProc(imgs_val, opt.means, opt.stds)
+    visits_train = torch.FloatTensor(visits_train.transpose(0,3,1,2))
+    visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
+    labs_train = torch.LongTensor(labs_train) - 1 # 网络输出从0开始，数据集标签从1开始
+    labs_val = torch.LongTensor(labs_val) - 1
+    
+    dataloader_train = DataLoader(dataset=TensorDataset(imgs_train, visits_train, labs_train),
+                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
+    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
+                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
+    
+#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt")
+#    dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
+#                            shuffle=True, num_workers=opt.workers)   
+#    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt")
+#    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
+#                                shuffle=True, num_workers=opt.workers)
     
     # 定义网络及其他
     net = CNN().to(opt.device)
@@ -95,7 +132,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             
-#            print(loss.item())
+            print(loss.item())
             
             _, preds = torch.max(out, 1)
             loss_temp_train += loss.item()
