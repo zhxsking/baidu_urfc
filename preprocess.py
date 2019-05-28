@@ -167,12 +167,6 @@ if __name__ == '__main__':
     visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
     imgs2npy(opt.data_npy)
     visits2npy(opt.dir_visit_npy, opt.data_npy)
-#    imgs_train = np.load(join(opt.data_npy, "train-img.npy"))
-#    imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
-#    visits_train = np.load(join(opt.data_npy, "train-visit.npy"))
-#    visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
-#    labs_train = np.load(join(opt.data_npy, "train-label.npy"))
-#    labs_val = np.load(join(opt.data_npy, "val-label.npy"))
     
     
     

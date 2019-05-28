@@ -19,7 +19,7 @@ from urfc_option import Option
         
 
 def imgProc(x, means, stds):
-    '''预处理'''
+    '''image预处理'''
     x = x.astype(np.float32) / 255.0 # 归一化
     x = x.transpose(0,3,1,2)
     x = torch.as_tensor(x, dtype=torch.float32)
@@ -56,11 +56,6 @@ def evalNet(net, loss_func, dataloader_val, device):
 if __name__ == '__main__':
     __spec__ = None
     opt = Option()
-    np.random.seed(1)
-    torch.manual_seed(1)
-    torch.cuda.manual_seed(1)
-    torch.backends.cudnn.deterministic = True
-    torch.cuda.empty_cache()
 
     # 初始化保存目录
     if not os.path.exists('checkpoint'):
@@ -132,7 +127,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             
-            print(loss.item())
+#            print(loss.item())
             
             _, preds = torch.max(out, 1)
             loss_temp_train += loss.item()

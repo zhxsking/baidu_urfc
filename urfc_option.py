@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import torch
+import random
+import numpy as np
 
 class Option():
     """定义网络的参数及其他"""
     def __init__(self):
-        self.epochs = 50
+        self.epochs = 20
         self.lr = 1e-3
-        self.batchsize = 1024 # 128 1024
+        self.batchsize = 1024 # 256 1024
         self.weight_decay = 0.00
         self.early_stop_num = 150 # acc在多少个epoch下都不提升就提前结束训练
         self.workers = 0 # 4 多进程，可能会卡程序
@@ -29,4 +31,10 @@ class Option():
         self.means = (-1.3326176e-09, -5.8395827e-10, -1.153197e-10)
         self.stds =(0.11115803, 0.09930103, 0.08884794)
         
-        
+        seed = 47
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.cuda.empty_cache()
