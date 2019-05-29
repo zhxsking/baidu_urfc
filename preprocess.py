@@ -5,6 +5,7 @@ import pandas as pd
 import os
 from os.path import join, pardir
 import shutil
+import stat
 import datetime
 from tqdm import tqdm
 import random
@@ -13,6 +14,16 @@ import Augmentor
 
 from urfc_option import Option
 
+
+
+def deleteFile(filePath):
+    '''删除非空文件夹'''
+    if os.path.exists(filePath):
+        for fileList in os.walk(filePath):
+            for name in fileList[2]:
+                os.chmod(join(fileList[0],name), stat.S_IWRITE)
+                os.remove(join(fileList[0],name))
+        shutil.rmtree(filePath)
 
 def imgDataClean(dir_img, ratio_b=0.6, ratio_w=0.9):
     '''清洗图片数据，删除大部分黑色图像'''
@@ -32,7 +43,7 @@ def imgDataClean(dir_img, ratio_b=0.6, ratio_w=0.9):
         
         # 删除output文件夹
         if os.path.exists(join(dir_img, dir, "output")):
-            shutil.rmtree(join(dir_img, dir, "output"))
+            deleteFile(join(dir_img, dir, "output"))
         for file in os.listdir(join(dir_img, dir)):
             path = join(dir_img, dir, file)
             img = plt.imread(path)
