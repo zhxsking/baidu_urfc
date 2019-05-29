@@ -240,6 +240,9 @@ def visits2npy(dir_visit_npy, data_npy):
     
     data_list = list(pd.read_csv("data/train.txt", header=None)[0])
     visit_names = [a.split('\\')[-1] for a in data_list]
+    if 'original' in visit_names[0]: # 文件名包含original则说明是增广数据
+        visit_names = [a[13:23] for a in visit_names]
+    
     visit_arrays = []
     for visit_name in tqdm(visit_names):
         path_visit = join(dir_visit_npy, visit_name + ".npy")
@@ -250,6 +253,8 @@ def visits2npy(dir_visit_npy, data_npy):
     
     data_list = list(pd.read_csv("data/val.txt", header=None)[0])
     visit_names = [a.split('\\')[-1] for a in data_list]
+    if 'original' in visit_names[0]: # 文件名包含original则说明是增广数据
+        visit_names = [a[13:23] for a in visit_names]
     visit_arrays = []
     for visit_name in tqdm(visit_names):
         path_visit = join(dir_visit_npy, visit_name + ".npy")
@@ -264,11 +269,9 @@ if __name__ == '__main__':
     imgsAug(opt.dir_img, 100, 100, opt.num_aug, multi_threaded=True)
     getAugSampleTxt(opt.dir_img, opt.num_val)
     augImgs2npy(opt.data_npy)
-#    getSampleTxt(opt.dir_img)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
 #    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
-#    imgs2npy(opt.data_npy)
-#    visits2npy(opt.dir_visit_npy, opt.data_npy)
+    visits2npy(opt.dir_visit_npy, opt.data_npy)
     
     
     
