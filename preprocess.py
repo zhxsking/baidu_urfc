@@ -35,6 +35,7 @@ def imgDataClean(dir_img, ratio_b=0.6, ratio_w=0.9):
     # 读取数据
     dirs = sorted(os.listdir(dir_img))
     files = {}
+    print('Clean Data...')
     for dir in tqdm(dirs):
         files[int(dir)] = []
         dir_img_cleaned_00 = join(dir_img_cleaned, dir)
@@ -73,6 +74,7 @@ def _imgAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
     p.sample(num_img, multi_threaded=multi_threaded) # 多线程提速但占内存，输出大图慎用多线程防死机
 
 def imgsAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
+    print('Image Augment...')
     for i in range(1,10):
         _imgAug(join(dir_img, str(i).zfill(3)), crop_w, crop_h, num_img, multi_threaded=multi_threaded)
 
@@ -121,6 +123,7 @@ def getSampleTxt(dir_img):
 def getAugSampleTxt(dir_img, num_val):
     '''将增广后的数据分为训练集和验证集，写入txt'''
     
+    print('Get Sample Txt...')
     # 读取数据
     dirs = sorted(os.listdir(dir_img))
     files = {}
@@ -163,6 +166,7 @@ def getAugSampleTxt(dir_img, num_val):
 def imgs2npy(data_npy):
     '''将图片集转换为一个npy文件'''
     
+    print('Image to npy...')
     # 初始化保存目录
     if not os.path.exists(data_npy):
         os.makedirs(data_npy)
@@ -192,6 +196,7 @@ def imgs2npy(data_npy):
 def augImgs2npy(data_npy):
     '''将增广的图片集转换为一个npy文件'''
     
+    print('Image to npy...')
     # 初始化保存目录
     if not os.path.exists(data_npy):
         os.makedirs(data_npy)
@@ -277,6 +282,7 @@ def visits2npys(dir_visit, dir_visit_npy):
 def visits2npy(dir_visit_npy, data_npy):
     '''将visit数据转换为一个npy文件'''
     
+    print('Visit to npy...')
     # 初始化保存目录
     if not os.path.exists(data_npy):
         os.makedirs(data_npy)

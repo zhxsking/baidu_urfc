@@ -32,8 +32,8 @@ class Option():
         self.dir_visit_npy = self.dir_visit + self.dir_npy_suffix
         self.dir_visit_npy_test = self.dir_visit_test + self.dir_npy_suffix
         
-        self.means = (-1.3326176e-09, -5.8395827e-10, -1.153197e-10)
-        self.stds =(0.11115803, 0.09930103, 0.08884794)
+        self.means = (-1.2232209e-09, -7.9797535e-10, -3.0236139e-10)
+        self.stds =(0.10928233, 0.098093316, 0.087956846)
         
         seed = 47
         random.seed(seed)

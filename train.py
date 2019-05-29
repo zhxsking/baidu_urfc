@@ -18,16 +18,19 @@ from urfc_dataset import UrfcDataset
 from urfc_option import Option
         
 
-def imgProc(x, means, stds):
+def imgProc(x):
     '''image预处理'''
     x = x.astype(np.float32) / 255.0 # 归一化
     x = x.transpose(0,3,1,2)
     x = torch.as_tensor(x, dtype=torch.float32)
     
     # 每张图减去均值，匀光
-    for i in range(3):
-        x[:,i,:,:] -= x[:,i,:,:].mean()
+    for j in range(x.shape[0]):
+        for i in range(3):
+            x[j,i,:,:] -= x[j,i,:,:].mean()
     
+    means = [x[:,i,:,:].mean() for i in range(3)]
+    stds = [x[:,i,:,:].std() for i in range(3)]
     # 标准化
     mean = torch.as_tensor(means, dtype=torch.float32)
     std = torch.as_tensor(stds, dtype=torch.float32)
@@ -72,8 +75,8 @@ if __name__ == '__main__':
     labs_train = np.load(join(opt.data_npy, "train-label.npy"))
     labs_val = np.load(join(opt.data_npy, "val-label.npy"))
     
-    imgs_train = imgProc(imgs_train, opt.means, opt.stds)
-    imgs_val = imgProc(imgs_val, opt.means, opt.stds)
+    imgs_train = imgProc(imgs_train)
+    imgs_val = imgProc(imgs_val)
     visits_train = torch.FloatTensor(visits_train.transpose(0,3,1,2))
     visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
     labs_train = torch.LongTensor(labs_train) - 1 # 网络输出从0开始，数据集标签从1开始
