@@ -29,6 +29,10 @@ def imgDataClean(dir_img, ratio_b=0.6, ratio_w=0.9):
         dir_img_cleaned_00 = join(dir_img_cleaned, dir)
         if not os.path.exists(dir_img_cleaned_00):
             os.mkdir(dir_img_cleaned_00)
+        
+        # 删除output文件夹
+        if os.path.exists(join(dir_img, dir, "output")):
+            shutil.rmtree(join(dir_img, dir, "output"))
         for file in os.listdir(join(dir_img, dir)):
             path = join(dir_img, dir, file)
             img = plt.imread(path)
