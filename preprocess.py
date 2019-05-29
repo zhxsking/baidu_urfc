@@ -107,14 +107,14 @@ def getAugSampleTxt(dir_img, num_val):
     f = open("data/train.txt", "w+")
     for i in range(1, 10):
         for item in train_data[i]:
-            f.write(item.split('.')[0] + "\n")
+            f.write(item[0:-4] + "\n")
     f.close()
     
     # val写入txt
     f = open("data/val.txt", "w+")
     for i in range(1, 10):
         for item in valid_data[i]:
-            f.write(item.split('.')[0] + "\n")
+            f.write(item[0:-4] + "\n")
     f.close()
 
 def imgs2npy(data_npy):
