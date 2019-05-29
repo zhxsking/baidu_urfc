@@ -25,6 +25,10 @@ def getSampleTxt(dir_img):
         for file in os.listdir(path):
             files[int(dir)].append(join(path, file))
     
+    nums = [len(files[i+1]) for i in range(9)]
+    pert = [(sum(nums) - nums[i]) / sum(nums)  for i in range(9)]
+    print(pert)
+    
     # 每一类采样200作为验证集，剩下的为训练集
     valid_data = {}
     train_data = {}
@@ -165,8 +169,8 @@ if __name__ == '__main__':
     getSampleTxt(opt.dir_img)
     visits2npys(opt.dir_visit, opt.dir_visit_npy)
     visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
-    imgs2npy(opt.data_npy)
-    visits2npy(opt.dir_visit_npy, opt.data_npy)
+#    imgs2npy(opt.data_npy)
+#    visits2npy(opt.dir_visit_npy, opt.data_npy)
     
     
     

@@ -61,7 +61,7 @@ class CNN(nn.Module):
         x = self.avgpool(x)
         x = x.reshape(x.size(0), -1)
         x = self.fc(x)
-        x = F.log_softmax(x, dim=1)
+#        x = F.log_softmax(x, dim=1)
         return x
 
 class mResNet18(nn.Module):
@@ -107,7 +107,7 @@ class mResNet18(nn.Module):
         x = x.reshape(x.size(0), -1)
         x = self.fc(x)
         
-        x = F.log_softmax(x, dim=1)
+#        x = F.log_softmax(x, dim=1)
         return x
 
 
