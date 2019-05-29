@@ -3,7 +3,8 @@
 import numpy as np
 import pandas as pd
 import os
-from os.path import join
+from os.path import join, pardir
+import shutil
 import datetime
 from tqdm import tqdm
 import random
@@ -13,6 +14,33 @@ import Augmentor
 from urfc_option import Option
 
 
+def imgDataClean(dir_img, ratio_b=0.6, ratio_w=0.9):
+    '''清洗图片数据，删除大部分黑色图像'''
+    # 初始化文件夹
+    dir_img_cleaned = join(dir_img, pardir, "img_cleaned")
+    if not os.path.exists(dir_img_cleaned):
+        os.mkdir(dir_img_cleaned)
+    
+    # 读取数据
+    dirs = sorted(os.listdir(dir_img))
+    files = {}
+    for dir in tqdm(dirs):
+        files[int(dir)] = []
+        dir_img_cleaned_00 = join(dir_img_cleaned, dir)
+        if not os.path.exists(dir_img_cleaned_00):
+            os.mkdir(dir_img_cleaned_00)
+        for file in os.listdir(join(dir_img, dir)):
+            path = join(dir_img, dir, file)
+            img = plt.imread(path)
+            
+            # 图片黑色和白色部分占比大于ratio则删除
+            if ((sum(sum(sum(img==0))) / (100*100*3)) > ratio_b or 
+                (sum(sum(sum(img==255))) / (100*100*3)) > ratio_w):
+#                shutil.copy(path, dir_img_cleaned_00)
+                shutil.move(path, join(dir_img_cleaned_00, file))
+                continue
+            files[int(dir)].append(path)
+
 def _imgAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
     '''图片数据增强'''
     p = Augmentor.Pipeline(dir_img)
@@ -21,12 +49,12 @@ def _imgAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
     p.flip_left_right(0.5)
     p.flip_top_bottom(0.5)
 #    p.random_erasing(0.5, rectangle_area=0.5) # 随机遮挡
-    p.rotate(0.5, max_left_rotation=10, max_right_rotation=10)
+    p.rotate(0.5, max_left_rotation=20, max_right_rotation=20)
     p.rotate_random_90(0.5) # 随机旋转90、180、270度，注意图片需为方的
-    p.zoom_random(0.3, percentage_area=0.5) # 随机放大
-    p.random_distortion(0.3,grid_height=5,grid_width=5,magnitude=5) # 弹性扭曲
+    p.zoom_random(0.3, percentage_area=0.8) # 随机放大
+    p.random_distortion(0.3,grid_height=5,grid_width=5,magnitude=2) # 弹性扭曲
     p.shear(0.3, max_shear_left=5, max_shear_right=5) # 随机错切（斜向一边）
-    p.skew(0.3, magnitude=0.3) # 透视形变
+#    p.skew(0.3, magnitude=0.3) # 透视形变
     p.sample(num_img, multi_threaded=multi_threaded) # 多线程提速但占内存，输出大图慎用多线程防死机
 
 def imgsAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
@@ -266,6 +294,7 @@ def visits2npy(dir_visit_npy, data_npy):
 
 if __name__ == '__main__':
     opt = Option()
+    imgDataClean(opt.dir_img)
     imgsAug(opt.dir_img, 100, 100, opt.num_aug, multi_threaded=True)
     getAugSampleTxt(opt.dir_img, opt.num_val)
     augImgs2npy(opt.data_npy)
