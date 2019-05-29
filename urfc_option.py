@@ -21,6 +21,9 @@ class Option():
         
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
+        self.num_aug = 5500
+        self.num_val = 500
+        
         self.dir_npy_suffix = "_npy_26_24_7"
         self.dir_img = r"E:\pic\URFC-baidu\train_image"
         self.data_npy = r"E:\pic\URFC-baidu\data_npy"

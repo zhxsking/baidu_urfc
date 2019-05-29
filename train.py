@@ -94,7 +94,7 @@ if __name__ == '__main__':
     # 定义网络及其他
 #    net = CNN().to(opt.device)
     net = mResNet18(pretrained=True).to(opt.device)
-    loss_func = nn.CrossEntropyLoss(weight=opt.weight).to(opt.device)
+    loss_func = nn.CrossEntropyLoss().to(opt.device)
 #    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1) # 动态改变lr
