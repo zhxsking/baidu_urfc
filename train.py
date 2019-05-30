@@ -100,10 +100,13 @@ if __name__ == '__main__':
     acc_list_val_ori = []
     best_acc = 0.0
     best_epoch = 1
+    best_model = copy.deepcopy(net.state_dict())
     best_acc_ori = 0.0
     best_epoch_ori = 1
-    best_model = copy.deepcopy(net.state_dict())
     best_model_ori = copy.deepcopy(net.state_dict())
+    best_loss = 1.0
+    best_epoch_loss = 1
+    best_model_loss = copy.deepcopy(net.state_dict())
     
     # 训练
     print('Start Training...')
@@ -165,8 +168,19 @@ if __name__ == '__main__':
             early_stop += 1
             if early_stop == opt.early_stop_num: break
         
+        # 更新最优loss模型
+        if epoch > 0 and loss_temp_val_ori <= best_loss:
+            best_epoch_loss = epoch + 1
+            best_loss = loss_temp_val_ori
+            best_model_loss = copy.deepcopy(net.state_dict())
+            early_stop = 0
+        elif epoch > 0:
+            early_stop += 1
+            if early_stop == opt.early_stop_num: break
+        
         print('epoch {}/{} done, train loss {:.4f}, val loss {:.4f}, val-ori loss {:.4f}, train acc {:.4f}, val acc {:.4f}, val-ori acc {:.4f}'
               .format(epoch+1, opt.epochs, loss_temp_train, loss_temp_val, loss_temp_val_ori, acc_temp_train, acc_temp_val, acc_temp_val_ori))
+        torch.save({'net',net.state_dict()}, r'checkpoint/cnn-epoch-{}.pkl'.format(epoch+1))
     # 保存最佳模型
     best_net_state = {
             'best_epoch': best_epoch,
@@ -182,6 +196,14 @@ if __name__ == '__main__':
             'net': best_model_ori,
             }
     torch.save(best_net_state_ori, r'checkpoint/best-cnn-ori.pkl')
+    
+    # 保存最佳loss模型
+    best_net_state_loss = {
+            'best_epoch': best_epoch_loss,
+            'best_loss': best_loss,
+            'net': best_model_loss,
+            }
+    torch.save(best_net_state_loss, r'checkpoint/best-cnn-loss.pkl')
     
     # 保存最终模型以及参数
     time_elapsed = time.time() - since # 用时

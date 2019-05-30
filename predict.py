@@ -17,7 +17,7 @@ if __name__ == '__main__':
     
     # 加载模型
     net = mResNet18().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
+    state = torch.load(r"checkpoint\best-cnn-ori.pkl", map_location=opt.device)
     net.load_state_dict(state['net'])
     
     # 加载数据
