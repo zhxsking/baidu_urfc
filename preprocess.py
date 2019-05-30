@@ -233,7 +233,6 @@ def augImgs2npy(data_npy):
         img = plt.imread(join(dir_img, file.split('\\')[-1][13:23]) + ".jpg")
         imgs.append(img)
     imgs = np.array(imgs)
-    labels = np.array(labels, dtype=np.uint8)
     np.save(join(data_npy, "val-img-ori.npy"), imgs)
     
 
