@@ -104,7 +104,7 @@ if __name__ == '__main__':
     best_acc_ori = 0.0
     best_epoch_ori = 1
     best_model_ori = copy.deepcopy(net.state_dict())
-    best_loss = 1.0
+    best_loss = 99.0
     best_epoch_loss = 1
     best_model_loss = copy.deepcopy(net.state_dict())
     
@@ -178,7 +178,7 @@ if __name__ == '__main__':
             early_stop += 1
             if early_stop == opt.early_stop_num: break
         
-        print('epoch {}/{} done, train loss {:.4f}, val loss {:.4f}, val-ori loss {:.4f}, train acc {:.4f}, val acc {:.4f}, val-ori acc {:.4f}'
+        print('epoch {}/{}, train val val-ori loss {:.4f} {:.4f} {:.4f}, acc {:.4f} {:.4f} {:.4f}'
               .format(epoch+1, opt.epochs, loss_temp_train, loss_temp_val, loss_temp_val_ori, acc_temp_train, acc_temp_val, acc_temp_val_ori))
         torch.save({'net':net.state_dict()}, r'checkpoint/cnn-epoch-{}.pkl'.format(epoch+1))
     # 保存最佳模型
@@ -214,6 +214,8 @@ if __name__ == '__main__':
             'acc_list_train': acc_list_train,
             'loss_list_val': loss_list_val,
             'acc_list_val': acc_list_val,
+            'loss_list_val_ori': loss_list_val_ori,
+            'acc_list_val_ori': acc_list_val_ori,
             'optimizer': optimizer.state_dict(),
             'net': net.state_dict(),
             }

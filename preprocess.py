@@ -12,6 +12,7 @@ import random
 import matplotlib.pyplot as plt
 import Augmentor
 import torch
+import cv2
 
 from urfc_option import Option
 
@@ -25,6 +26,7 @@ def imgProc(x):
     # 每张图减去均值，匀光
     for j in range(x.shape[0]):
         for i in range(3):
+            x[j,i,:,:] = cv2.equalizeHist(x[j,i,:,:]) # 直方图均衡
             x[j,i,:,:] -= x[j,i,:,:].mean()
     
     means = [x[:,i,:,:].mean() for i in range(3)]
