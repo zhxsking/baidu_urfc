@@ -225,7 +225,17 @@ def augImgs2npy(data_npy):
     labels = np.array(labels, dtype=np.uint8)
     np.save(join(data_npy, "val-img.npy"), imgs)
     np.save(join(data_npy, "val-label.npy"), labels)
-
+    
+    # 未增广的验证集
+    imgs = []
+    for file in tqdm(data_list):
+        dir_img = file.split('output')[0]
+        img = plt.imread(join(dir_img, file.split('\\')[-1][13:23]) + ".jpg")
+        imgs.append(img)
+    imgs = np.array(imgs)
+    labels = np.array(labels, dtype=np.uint8)
+    np.save(join(data_npy, "val-img-ori.npy"), imgs)
+    
 
 def visit2array(table):
     '''将visit数据转换为矩阵'''

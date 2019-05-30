@@ -69,7 +69,7 @@ class mResNet18(nn.Module):
         super().__init__()
         mdl = models.resnet18(pretrained=pretrained)
         
-        self.conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = mdl.bn1
         self.relu = mdl.relu
@@ -99,7 +99,7 @@ class mResNet18(nn.Module):
         
         x = torch.cat((x_img, x_visit), dim=1)
         
-        x = self.conv1(x)
+        x = self.conv1(x_visit)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
