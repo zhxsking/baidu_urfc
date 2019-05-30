@@ -7,14 +7,13 @@ import numpy as np
 class Option():
     """定义网络的参数及其他"""
     def __init__(self):
-        self.epochs = 20
-        self.lr = 1e-3
+        self.epochs = 40
+        self.lr = 1e-4
         self.batchsize = 1024 # 256 1024
         self.weight_decay = 0.00
         self.early_stop_num = 150 # acc在多少个epoch下都不提升就提前结束训练
         self.workers = 0 # 4 多进程，可能会卡程序
         self.pretrained = False
-        self.weight = torch.Tensor([0.76145, 0.81155, 0.91025, 0.96605, 0.9134, 0.862325, 0.912075, 0.934575, 0.928325])
         
         self.threshold = -0.7 # 阈值,ln(0.5)=-0.69
 #        self.net_path = r"checkpoint\best-cnn.pkl"

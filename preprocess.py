@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+# 数据预处理，参考了https://github.com/czczup/UrbanRegionFunctionClassification
 import numpy as np
 import pandas as pd
 import os

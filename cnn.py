@@ -69,7 +69,7 @@ class mResNet18(nn.Module):
         super().__init__()
         mdl = models.resnet18(pretrained=pretrained)
         
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = mdl.bn1
         self.relu = mdl.relu
@@ -81,7 +81,7 @@ class mResNet18(nn.Module):
         self.layer4 = mdl.layer4
         
         self.avgpool = mdl.avgpool
-        self.fc = nn.Linear(512, 9)
+        self.fc = nn.Linear(mdl.fc.in_features, 9)
         
         if not(pretrained):
             for m in self.modules():
@@ -92,8 +92,14 @@ class mResNet18(nn.Module):
                     nn.init.constant_(m.bias, 0)
         
     def forward(self, x_img, x_visit):
+        # N,7,26,24整型为N,1,56,78
+        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
+        # pad为N,1,100,100
+        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
         
-        x = self.conv1(x_img)
+        x = torch.cat((x_img, x_visit), dim=1)
+        
+        x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)

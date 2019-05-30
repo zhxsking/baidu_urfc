@@ -68,6 +68,7 @@ if __name__ == '__main__':
         os.makedirs('checkpoint')
     
     # 加载数据
+    print('Loading Data...')
     imgs_train = np.load(join(opt.data_npy, "train-img.npy"))
     imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
     visits_train = np.load(join(opt.data_npy, "train-visit.npy"))
@@ -98,8 +99,8 @@ if __name__ == '__main__':
 #    net = CNN().to(opt.device)
     net = mResNet18(pretrained=True).to(opt.device)
     loss_func = nn.CrossEntropyLoss().to(opt.device)
-#    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
-    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9)
+    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
+#    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1) # 动态改变lr
     
     # 初始化
@@ -114,6 +115,7 @@ if __name__ == '__main__':
     best_model = copy.deepcopy(net.state_dict())
     
     # 训练
+    print('Start Training...')
     for epoch in range(opt.epochs):
         loss_temp_train = 0.0
         acc_temp_train = 0.0
