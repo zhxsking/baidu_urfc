@@ -180,7 +180,7 @@ if __name__ == '__main__':
         
         print('epoch {}/{} done, train loss {:.4f}, val loss {:.4f}, val-ori loss {:.4f}, train acc {:.4f}, val acc {:.4f}, val-ori acc {:.4f}'
               .format(epoch+1, opt.epochs, loss_temp_train, loss_temp_val, loss_temp_val_ori, acc_temp_train, acc_temp_val, acc_temp_val_ori))
-        torch.save({'net',net.state_dict()}, r'checkpoint/cnn-epoch-{}.pkl'.format(epoch+1))
+        torch.save({'net':net.state_dict()}, r'checkpoint/cnn-epoch-{}.pkl'.format(epoch+1))
     # 保存最佳模型
     best_net_state = {
             'best_epoch': best_epoch,
