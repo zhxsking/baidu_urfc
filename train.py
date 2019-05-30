@@ -13,29 +13,11 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+from preprocess import imgProc
 from cnn import CNN, mResNet18
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
-        
 
-def imgProc(x):
-    '''image预处理'''
-    x = x.astype(np.float32) / 255.0 # 归一化
-    x = x.transpose(0,3,1,2)
-    x = torch.as_tensor(x, dtype=torch.float32)
-    
-    # 每张图减去均值，匀光
-    for j in range(x.shape[0]):
-        for i in range(3):
-            x[j,i,:,:] -= x[j,i,:,:].mean()
-    
-    means = [x[:,i,:,:].mean() for i in range(3)]
-    stds = [x[:,i,:,:].std() for i in range(3)]
-    # 标准化
-    mean = torch.as_tensor(means, dtype=torch.float32)
-    std = torch.as_tensor(stds, dtype=torch.float32)
-    
-    return x.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
 
 def evalNet(net, loss_func, dataloader_val, device):
     """用验证集评判网络性能"""
@@ -86,11 +68,11 @@ if __name__ == '__main__':
     labs_val = torch.LongTensor(labs_val) - 1
     
     dataloader_train = DataLoader(dataset=TensorDataset(imgs_train, visits_train, labs_train),
-                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
+                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers, pin_memory=True)
     dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
-                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
+                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers, pin_memory=True)
     dataloader_val_ori = DataLoader(dataset=TensorDataset(imgs_val_ori, visits_val, labs_val),
-                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
+                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers, pin_memory=True)
     
 #    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt")
 #    dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
@@ -231,6 +213,6 @@ if __name__ == '__main__':
     plt.title('Acc')
     plt.plot(acc_list_train)
     plt.plot(acc_list_val)
-    plt.plot(loss_list_val_ori)
+    plt.plot(acc_list_val_ori)
     plt.show()
     

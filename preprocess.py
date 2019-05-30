@@ -11,10 +11,29 @@ from tqdm import tqdm
 import random
 import matplotlib.pyplot as plt
 import Augmentor
+import torch
 
 from urfc_option import Option
 
 
+def imgProc(x):
+    '''image预处理，x为NHWC格式uint8类型的numpy矩阵，生成NCHW的tensor'''
+    x = x.astype(np.float32) / 255.0 # 归一化
+    x = x.transpose(0,3,1,2)
+    x = torch.as_tensor(x, dtype=torch.float32)
+    
+    # 每张图减去均值，匀光
+    for j in range(x.shape[0]):
+        for i in range(3):
+            x[j,i,:,:] -= x[j,i,:,:].mean()
+    
+    means = [x[:,i,:,:].mean() for i in range(3)]
+    stds = [x[:,i,:,:].std() for i in range(3)]
+    # 标准化
+    mean = torch.as_tensor(means, dtype=torch.float32)
+    std = torch.as_tensor(stds, dtype=torch.float32)
+    
+    return x.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
 
 def deleteFile(filePath):
     '''删除非空文件夹'''
@@ -201,7 +220,6 @@ def augImgs2npy(data_npy):
     if not os.path.exists(data_npy):
         os.makedirs(data_npy)
     
-    # D:\pic\URFC-baidu\train_image\002\output\002_original_001922_002.jpg_db4c590f-dd4c-46d9-b4cf-7a434b08e3e0.jpg
     # 训练集
     data_list = list(pd.read_csv("data/train.txt", header=None)[0])
     labels = [int(a.split('\\')[-1][0:3]) for a in data_list]
@@ -234,7 +252,24 @@ def augImgs2npy(data_npy):
         imgs.append(img)
     imgs = np.array(imgs)
     np.save(join(data_npy, "val-img-ori.npy"), imgs)
+
+def testImgs2npy(dir_img_test, data_npy):
+    '''将测试集visit数据转换为一个npy文件'''
     
+    print('Test Image to npy...')
+    # 初始化保存目录
+    if not os.path.exists(data_npy):
+        os.makedirs(data_npy)
+    
+    # 读取数据
+    img_names = sorted(os.listdir(dir_img_test))
+    
+    imgs = []
+    for img_name in tqdm(img_names):
+        img = plt.imread(join(dir_img_test, img_name))
+        imgs.append(img)
+    imgs = np.array(imgs)
+    np.save(join(data_npy, "test-img.npy"), imgs)
 
 def visit2array(table):
     '''将visit数据转换为矩阵'''
@@ -321,16 +356,38 @@ def visits2npy(dir_visit_npy, data_npy):
     visit_arrays = np.array(visit_arrays)
     np.save(join(data_npy, "val-visit.npy"), visit_arrays)
 
+def testVisits2npy(dir_visit_npy_test, data_npy):
+    '''将测试集visit数据转换为一个npy文件'''
+    
+    print('Test Visit to npy...')
+    # 初始化保存目录
+    if not os.path.exists(data_npy):
+        os.makedirs(data_npy)
+    
+    # 读取数据
+    visit_names = sorted(os.listdir(dir_visit_npy_test))
+    
+    visit_arrays = []
+    for visit_name in tqdm(visit_names):
+        path_visit = join(dir_visit_npy_test, visit_name)
+        visit_array = np.load(path_visit)
+        visit_arrays.append(visit_array)
+    visit_arrays = np.array(visit_arrays)
+    np.save(join(data_npy, "test-visit.npy"), visit_arrays)
+
+
 
 if __name__ == '__main__':
     opt = Option()
-    imgDataClean(opt.dir_img)
-    imgsAug(opt.dir_img, 100, 100, opt.num_aug, multi_threaded=True)
-    getAugSampleTxt(opt.dir_img, opt.num_val)
-    augImgs2npy(opt.data_npy)
+#    imgDataClean(opt.dir_img)
+#    imgsAug(opt.dir_img, 100, 100, opt.num_aug, multi_threaded=True)
+#    getAugSampleTxt(opt.dir_img, opt.num_val)
+#    augImgs2npy(opt.data_npy)
+    testImgs2npy(opt.dir_img_test, opt.data_npy)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
 #    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
-    visits2npy(opt.dir_visit_npy, opt.data_npy)
+#    visits2npy(opt.dir_visit_npy, opt.data_npy)
+    testVisits2npy(opt.dir_visit_npy_test, opt.data_npy)
     
     
     

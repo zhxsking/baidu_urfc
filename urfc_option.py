@@ -25,6 +25,7 @@ class Option():
         
         self.dir_npy_suffix = "_npy_26_24_7"
         self.dir_img = r"E:\pic\URFC-baidu\train_image"
+        self.dir_img_test = r"E:\pic\URFC-baidu\test_image"
         self.data_npy = r"E:\pic\URFC-baidu\data_npy"
         self.dir_visit = r"E:\pic\URFC-baidu\train_visit"
         self.dir_visit_test = r"E:\pic\URFC-baidu\test_visit"
