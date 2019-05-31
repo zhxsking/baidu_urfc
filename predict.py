@@ -44,11 +44,14 @@ if __name__ == '__main__':
     # 输出预测文件
     f = open(r"data/out-label.txt", "w+")
     cnt = 0
+    out_lab_np = []
     for j in range(len(out_lab)):
         for i in range(len(out_lab[j])):
+            out_lab_np.append(out_lab[j][i])
             f.write("{} \t {}\n".format(str(cnt).zfill(6), str(out_lab[j][i]).zfill(3)))
             cnt += 1
     f.close()
+    out_lab_np = np.array(out_lab_np)
     
 
 
