@@ -86,8 +86,8 @@ if __name__ == '__main__':
     net = mResNet18(pretrained=True).to(opt.device)
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
-#    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1) # 动态改变lr
+#    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 动态改变lr
     
     # 初始化
     since = time.time() # 记录时间
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         loss_temp_train = 0.0
         acc_temp_train = 0.0
         net.train()
-#        scheduler.step()
+        scheduler.step(epoch)
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
             img = img.to(opt.device)
             visit = visit.to(opt.device)
