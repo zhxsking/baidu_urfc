@@ -100,6 +100,9 @@ def _imgAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
 def imgsAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
     print('Image Augment...')
     for i in range(1,10):
+        # 删除output文件夹
+        if os.path.exists(join(dir_img, str(i).zfill(3), "output")):
+            deleteFile(join(dir_img, str(i).zfill(3), "output"))
         _imgAug(join(dir_img, str(i).zfill(3)), crop_w, crop_h, num_img, multi_threaded=multi_threaded)
 
 def getSampleTxt(dir_img):
