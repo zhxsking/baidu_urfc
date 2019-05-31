@@ -229,12 +229,12 @@ if __name__ == '__main__':
     
     # 训练完显示loss及Acc曲线
     plt.figure()
-    plt.subplot(131)
+    plt.subplot(121)
     plt.title('Loss')
     plt.plot(loss_list_train)
     plt.plot(loss_list_val)
     plt.plot(loss_list_val_ori)
-    plt.subplot(132)
+    plt.subplot(122)
     plt.title('Acc')
     plt.plot(acc_list_train)
     plt.plot(acc_list_val)
