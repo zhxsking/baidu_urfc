@@ -224,7 +224,8 @@ if __name__ == '__main__':
     # 显示训练信息
     print('-' * 50)
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print('Best val Acc {:4f} in epoch {}, val-ori Acc {:4f} in epoch {}'.format(best_acc, best_epoch, best_acc_ori, best_epoch_ori))
+    print('Best val Acc {:4f} in epoch {}, val-ori Acc {:4f} in epoch {}, Best loss {:4f} in epoch {}'
+          .format(best_acc, best_epoch, best_acc_ori, best_epoch_ori, best_loss, best_epoch_loss))
     
     # 训练完显示loss及Acc曲线
     plt.figure()
