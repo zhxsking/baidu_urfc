@@ -35,7 +35,6 @@ def evalNet(net, loss_func, dataloader_val, device):
             _, preds = torch.max(out, 1)
             loss_temp += loss.item()
             acc_temp += (float(torch.sum(preds == out_gt.data)) / len(out_gt))
-            out_lab.append(preds.cpu().numpy().flatten().astype(np.uint8))
     return loss_temp / cnt, acc_temp / cnt
 
 
