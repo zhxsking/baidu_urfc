@@ -89,7 +89,7 @@ if __name__ == '__main__':
 #    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 动态改变lr
 #    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5) # 动态改变lr
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.5, patience=opt.epochs//4, verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.5, patience=3, verbose=True)
     
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
@@ -135,7 +135,8 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             
-#            print(loss.item())
+            print('\rbatch {}/{} interim loss is: {}'
+                  .format(cnt, len(dataloader_train), loss.item()), end='\r')
             
             _, preds = torch.max(out, 1)
             loss_temp_train += loss.item()
@@ -188,7 +189,8 @@ if __name__ == '__main__':
             if early_stop == opt.early_stop_num: break
         
         print('epoch {}/{}, train val val-ori loss {:.4f} {:.4f} {:.4f}, acc {:.4f} {:.4f} {:.4f}'
-              .format(epoch+1, opt.epochs, loss_temp_train, loss_temp_val, loss_temp_val_ori, acc_temp_train, acc_temp_val, acc_temp_val_ori))
+              .format(epoch+1, opt.epochs, loss_temp_train, loss_temp_val, 
+                      loss_temp_val_ori, acc_temp_train, acc_temp_val, acc_temp_val_ori))
         torch.save({'net':net.state_dict()}, r'checkpoint/cnn-epoch-{}.pkl'.format(epoch+1))
     # 保存最佳模型
     best_net_state = {
