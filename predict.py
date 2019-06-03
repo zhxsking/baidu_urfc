@@ -27,14 +27,14 @@ if __name__ == '__main__':
     imgs_test = imgProc(imgs_test)
     visits_test = torch.FloatTensor(visits_test.transpose(0,3,1,2))
     
-    dataloader_val = DataLoader(dataset=TensorDataset(imgs_test, visits_test),
+    dataloader_test = DataLoader(dataset=TensorDataset(imgs_test, visits_test),
                                 batch_size=opt.batchsize, num_workers=opt.workers)
     
     # 分batch进行预测
     net.eval()
     out_lab = []
     with torch.no_grad():
-        for (img, visit) in tqdm(dataloader_val):
+        for (img, visit) in tqdm(dataloader_test):
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out, _ = net(img, visit)

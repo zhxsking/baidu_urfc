@@ -7,7 +7,7 @@ import numpy as np
 class Option():
     """定义网络的参数及其他"""
     def __init__(self):
-        self.epochs = 100
+        self.epochs = 20
         self.lr = 1e-4
         self.batchsize = 1024 # 512 1024
         self.weight_decay = 0.1
@@ -26,7 +26,7 @@ class Option():
         
         self.dir_npy_suffix = "_npy_26_24_7"
         self.dir_img = r"E:\pic\URFC-baidu\train_image"
-        self.dir_img_val = r"D:\pic\URFC-baidu\val_image"
+        self.dir_img_val = r"E:\pic\URFC-baidu\val_image"
         self.dir_img_test = r"E:\pic\URFC-baidu\test_image"
         self.data_npy = r"E:\pic\URFC-baidu\data_npy"
         self.dir_visit = r"E:\pic\URFC-baidu\train_visit"

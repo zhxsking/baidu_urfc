@@ -140,5 +140,6 @@ if __name__ == '__main__':
     test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
     test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
 
-    out_x = net(test_x1, test_x2)
+    out_x, out_fea = net(test_x1, test_x2)
     print(out_x)
+    print(out_fea.shape)

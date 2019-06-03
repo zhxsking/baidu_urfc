@@ -68,11 +68,11 @@ if __name__ == '__main__':
     labs_val = torch.LongTensor(labs_val) - 1
     
     dataloader_train = DataLoader(dataset=TensorDataset(imgs_train, visits_train, labs_train),
-                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers, pin_memory=True)
+                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
     dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
-                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers, pin_memory=True)
+                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
     dataloader_val_ori = DataLoader(dataset=TensorDataset(imgs_val_ori, visits_val, labs_val),
-                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers, pin_memory=True)
+                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
     
 #    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt")
 #    dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
@@ -89,7 +89,7 @@ if __name__ == '__main__':
 #    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 动态改变lr
 #    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5) # 动态改变lr
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.5, patience=10, verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.5, patience=opt.epochs//4, verbose=True)
     
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
@@ -249,4 +249,5 @@ if __name__ == '__main__':
     plt.plot(acc_list_val)
     plt.plot(acc_list_val_ori)
     plt.show()
+    
     

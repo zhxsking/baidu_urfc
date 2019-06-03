@@ -7,6 +7,7 @@ from os.path import join, pardir
 import shutil
 import stat
 import datetime
+import time
 from tqdm import tqdm
 import random
 import matplotlib.pyplot as plt
@@ -407,6 +408,7 @@ def testVisits2npy(dir_visit_npy_test, data_npy):
 
 if __name__ == '__main__':
     opt = Option()
+    since = time.time() # 记录时间
 #    imgDataClean(opt.dir_img)
     imgData2val(opt.dir_img, opt.dir_img_val)
     imgsAug(opt.dir_img, 100, 100, opt.num_train, multi_threaded=True)
@@ -419,6 +421,9 @@ if __name__ == '__main__':
 #    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
     visits2npy(opt.dir_visit_npy, opt.data_npy)
     testVisits2npy(opt.dir_visit_npy_test, opt.data_npy)
+    time_elapsed = time.time() - since # 用时
+    print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+
     
     
     
