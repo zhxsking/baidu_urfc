@@ -67,7 +67,7 @@ class CNN(nn.Module):
 class mResNet18(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
-        mdl = models.resnext50_32x4d(pretrained=pretrained)
+        mdl = models.resnext101_32x8d(pretrained=pretrained)
         
         self.conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
