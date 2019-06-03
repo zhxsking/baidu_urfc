@@ -3,7 +3,6 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
-import sys
 from os.path import join
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,11 +20,10 @@ def plotConfusionMatrix(cm):
     plt.title('confusion matrix')
     iters = np.reshape([[[i,j] for j in range(9)] for i in range(9)],(cm.size,2))
     for i, j in iters:
-        plt.text(j, i, format(cm[i, j])) # 显示对应的数字
+        plt.text(j, i, format(cm[i, j]), horizontalalignment='center') # 显示对应的数字
     plt.ylabel('GT')
     plt.xlabel('Prediction')
     plt.show()
-    plt.savefig(r"checkpoint/confusion-matrix.jpg")
     
     
 def evalNet(net, loss_func, dataloader_val, device):
@@ -66,9 +64,9 @@ if __name__ == '__main__':
     labs_val = torch.LongTensor(labs_val) - 1
     
     dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
-                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
+                                  batch_size=opt.batchsize, num_workers=opt.workers)
     dataloader_val_ori = DataLoader(dataset=TensorDataset(imgs_val_ori, visits_val, labs_val),
-                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
+                                  batch_size=opt.batchsize, num_workers=opt.workers)
     
     # 加载模型
     net = mResNet18().to(opt.device)
@@ -85,8 +83,9 @@ if __name__ == '__main__':
         for i in range(len(out_lab[j])):
             out_lab_np.append(out_lab[j][i])
     out_lab_np = np.array(out_lab_np)
-    cm = metrics.confusion_matrix(labs_val, out_lab_np)
-    acc_all_val = metrics.accuracy_score(labs_val, out_lab_np)
+    labs_val_np = labs_val.cpu().numpy()
+    cm = metrics.confusion_matrix(labs_val_np, out_lab_np)
+    acc_all_val = metrics.accuracy_score(labs_val_np, out_lab_np)
     plotConfusionMatrix(cm)
     print('val acc {:.4f}'.format(acc_all_val))
     
