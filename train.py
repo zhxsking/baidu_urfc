@@ -45,9 +45,9 @@ if __name__ == '__main__':
     # 初始化保存目录
     if not os.path.exists('checkpoint'):
         os.makedirs('checkpoint')
-    else:
-        shutil.rmtree('checkpoint')
-        os.makedirs('checkpoint')
+#    else:
+#        shutil.rmtree('checkpoint')
+#        os.makedirs('checkpoint')
     
     # 加载数据
     print('Loading Data...')
