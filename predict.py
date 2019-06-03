@@ -37,7 +37,7 @@ if __name__ == '__main__':
         for (img, visit) in tqdm(dataloader_val):
             img = img.to(opt.device)
             visit = visit.to(opt.device)
-            out = net(img, visit)
+            out, _ = net(img, visit)
             _, preds = torch.max(out, 1)
             out_lab.append(preds.cpu().numpy().flatten().astype(np.uint8) + 1)
     

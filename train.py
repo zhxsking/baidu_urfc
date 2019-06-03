@@ -29,7 +29,7 @@ def evalNet(net, loss_func, dataloader_val, device):
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
-            out = net(img, visit)
+            out, _ = net(img, visit)
 
             loss = loss_func(out, out_gt)
             _, preds = torch.max(out, 1)
@@ -87,7 +87,14 @@ if __name__ == '__main__':
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
 #    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 动态改变lr
+#    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 动态改变lr
+#    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5) # 动态改变lr
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.5, patience=10, verbose=True)
+    
+    # 冻结层
+#    for count, (name, param) in enumerate(net.named_parameters(), 1):
+#        if 'layer' in name:
+#            param.requires_grad = False
     
     # 初始化
     since = time.time() # 记录时间
@@ -114,12 +121,12 @@ if __name__ == '__main__':
         loss_temp_train = 0.0
         acc_temp_train = 0.0
         net.train()
-        scheduler.step(epoch)
+#        scheduler.step(epoch)
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
-            out = net(img, visit)
+            out, _ = net(img, visit)
             
 #            sys.exit(0)
             
@@ -147,6 +154,8 @@ if __name__ == '__main__':
         loss_temp_val_ori, acc_temp_val_ori = evalNet(net, loss_func, dataloader_val_ori, opt.device)
         loss_list_val_ori.append(loss_temp_val_ori)
         acc_list_val_ori.append(acc_temp_val_ori)
+        
+        scheduler.step(acc_temp_val_ori)
         
         # 更新最优模型
         if epoch > 0 and acc_temp_val >= best_acc:

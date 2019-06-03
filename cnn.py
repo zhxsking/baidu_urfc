@@ -67,7 +67,7 @@ class CNN(nn.Module):
 class mResNet18(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
-        mdl = models.resnet18(pretrained=pretrained)
+        mdl = models.resnext50_32x4d(pretrained=pretrained)
         
         self.conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
@@ -111,11 +111,13 @@ class mResNet18(nn.Module):
         x = self.layer4(x)
 
         x = self.avgpool(x)
+        x_fea = x
+        
         x = x.reshape(x.size(0), -1)
         x = self.fc(x)
         
 #        x = F.log_softmax(x, dim=1)
-        return x
+        return x, x_fea
 
 
 if __name__ == '__main__':
@@ -134,9 +136,9 @@ if __name__ == '__main__':
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
     
-    test_x1 = torch.rand(1, img_depth, img_height, img_width).to(device)
-    test_x2 = torch.rand(1, visit_depth, visit_height, visit_width).to(device)
+    bs = 256
+    test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
+    test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
 
     out_x = net(test_x1, test_x2)
     print(out_x)
-    

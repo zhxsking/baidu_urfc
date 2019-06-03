@@ -81,6 +81,39 @@ def imgDataClean(dir_img, ratio_b=0.6, ratio_w=0.9):
                 continue
             files[int(dir)].append(path)
 
+def imgData2val(dir_img, dir_img_val):
+    '''分一部分数据作为验证集'''
+    # 初始化文件夹
+    if not os.path.exists(dir_img_val):
+        os.mkdir(dir_img_val)
+    
+    # 读取数据
+    dirs = sorted(os.listdir(dir_img))
+    files = {}
+    for dir in dirs:
+        # 删除output文件夹
+        if os.path.exists(join(dir_img, dir, "output")):
+            deleteFile(join(dir_img, dir, "output"))
+        
+        path = join(dir_img, dir)
+        files[int(dir)] = []
+        for file in os.listdir(path):
+            files[int(dir)].append(join(path, file))
+    
+    # 每一类采样200作为验证集，剩下的为训练集
+    valid_data = {}
+    for i in dirs:
+        valid_data[int(i)] = random.sample(files[int(i)], 200)
+    
+    # 移动验证集数据
+    for i in tqdm(dirs):
+        dir_img_val_00 = join(dir_img_val, i)
+        if not os.path.exists(dir_img_val_00):
+            os.mkdir(dir_img_val_00)
+        for item in valid_data[int(i)]:
+#            shutil.copy(item, dir_img_val_00)
+            shutil.move(item, join(dir_img_val_00, item.split('\\')[-1]))
+
 def _imgAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
     '''图片数据增强'''
     p = Augmentor.Pipeline(dir_img)
@@ -147,8 +180,8 @@ def getSampleTxt(dir_img):
             f.write(item.split('.')[0] + "\n")
     f.close()
 
-def getAugSampleTxt(dir_img, num_val):
-    '''将增广后的数据分为训练集和验证集，写入txt'''
+def getAugSampleTxt(dir_img, path_txt):
+    '''将增广后的数据写入txt'''
     
     print('Get Sample Txt...')
     # 读取数据
@@ -165,30 +198,17 @@ def getAugSampleTxt(dir_img, num_val):
     pert = [(sum(nums) - nums[i]) / sum(nums)  for i in range(9)]
     print(pert)
     
-    # 每一类采样num_val个作为验证集，剩下的为训练集
-    valid_data = {}
-    train_data = {}
-    for i in range(1, 10):
-        valid_data[i] = random.sample(files[i], num_val)
-        train_data[i] = list(set(files[i]) - set(valid_data[i]))
-    
     # 初始化保存目录
     if not os.path.exists("data"):
         os.makedirs("data")
     
-    # train写入txt
-    f = open("data/train.txt", "w+")
+    # 写入txt
+    f = open(path_txt, "w+")
     for i in range(1, 10):
-        for item in train_data[i]:
+        for item in files[i]:
             f.write(item[0:-4] + "\n")
     f.close()
-    
-    # val写入txt
-    f = open("data/val.txt", "w+")
-    for i in range(1, 10):
-        for item in valid_data[i]:
-            f.write(item[0:-4] + "\n")
-    f.close()
+
 
 def imgs2npy(data_npy):
     '''将图片集转换为一个npy文件'''
@@ -388,13 +408,16 @@ def testVisits2npy(dir_visit_npy_test, data_npy):
 if __name__ == '__main__':
     opt = Option()
 #    imgDataClean(opt.dir_img)
-#    imgsAug(opt.dir_img, 100, 100, opt.num_aug, multi_threaded=True)
-#    getAugSampleTxt(opt.dir_img, opt.num_val)
-#    augImgs2npy(opt.data_npy)
+    imgData2val(opt.dir_img, opt.dir_img_val)
+    imgsAug(opt.dir_img, 100, 100, opt.num_train, multi_threaded=True)
+    imgsAug(opt.dir_img_val, 100, 100, opt.num_val, multi_threaded=True)
+    getAugSampleTxt(opt.dir_img, "data/train.txt")
+    getAugSampleTxt(opt.dir_img_val, "data/val.txt")
+    augImgs2npy(opt.data_npy)
     testImgs2npy(opt.dir_img_test, opt.data_npy)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
 #    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
-#    visits2npy(opt.dir_visit_npy, opt.data_npy)
+    visits2npy(opt.dir_visit_npy, opt.data_npy)
     testVisits2npy(opt.dir_visit_npy_test, opt.data_npy)
     
     
