@@ -114,7 +114,7 @@ if __name__ == '__main__':
         'num_class': 9,
         'num_iterations': 100,
         'num_leaves': 31,   # 叶子节点数
-        'learning_rate': 0.01,  # 学习速率
+        'learning_rate': 0.1,  # 学习速率
         'feature_fraction': 0.9, # 建树的特征选择比例
         'bagging_fraction': 0.8, # 建树的样本采样比例
         'bagging_freq': 5,  # k 意味着每 k 次迭代执行bagging
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     
     y_pred_val = gbm.predict(fea_val, num_iteration=gbm.best_iteration)
     y_predy_val = np.argmax(y_pred_val, axis=1)
-    print('The acc of prediction is:', sum(lab_val==y_pred_val) / len(y_pred_val))
+    print('The acc of prediction is:', sum(lab_val==y_predy_val) / len(y_pred_val))
     
     y_pred_test = gbm.predict(fea_test, num_iteration=gbm.best_iteration)
     y_predy_test = np.argmax(y_pred_test, axis=1)
