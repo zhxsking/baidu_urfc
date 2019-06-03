@@ -3,7 +3,6 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
-import torchvision.transforms as transforms
 import sys
 import os
 from os.path import join
@@ -12,18 +11,33 @@ import shutil
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn import metrics
 
 from preprocess import imgProc
-from cnn import CNN, mResNet18
+from cnn import mResNet18
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
 
 
+def plotConfusionMatrix(cm):
+    plt.figure()
+    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Oranges)
+    plt.title('confusion matrix')
+    iters = np.reshape([[[i,j] for j in range(9)] for i in range(9)],(cm.size,2))
+    for i, j in iters:
+        plt.text(j, i, format(cm[i, j])) # 显示对应的数字
+    plt.ylabel('GT')
+    plt.xlabel('Prediction')
+    plt.show()
+    plt.savefig(r"checkpoint/confusion-matrix.jpg")
+    
+    
 def evalNet(net, loss_func, dataloader_val, device):
     """用验证集评判网络性能"""
     net.eval()
     acc_temp = 0
     loss_temp = 0
+    out_lab = []
     with torch.no_grad():
         for cnt, (img, visit, out_gt) in enumerate(dataloader_val, 1):
             img = img.to(opt.device)
@@ -35,7 +49,8 @@ def evalNet(net, loss_func, dataloader_val, device):
             _, preds = torch.max(out, 1)
             loss_temp += loss.item()
             acc_temp += (float(torch.sum(preds == out_gt.data)) / len(out_gt))
-    return loss_temp / cnt, acc_temp / cnt
+            out_lab.append(preds.cpu().numpy().flatten().astype(np.uint8))
+    return loss_temp / cnt, acc_temp / cnt, out_lab
 
 
 if __name__ == '__main__':
@@ -146,12 +161,12 @@ if __name__ == '__main__':
         acc_list_train.append(acc_temp_train)
         
         # 验证
-        loss_temp_val, acc_temp_val = evalNet(net, loss_func, dataloader_val, opt.device)
+        loss_temp_val, acc_temp_val, _ = evalNet(net, loss_func, dataloader_val, opt.device)
         loss_list_val.append(loss_temp_val)
         acc_list_val.append(acc_temp_val)
         
         # 验证原始数据
-        loss_temp_val_ori, acc_temp_val_ori = evalNet(net, loss_func, dataloader_val_ori, opt.device)
+        loss_temp_val_ori, acc_temp_val_ori, out_lab = evalNet(net, loss_func, dataloader_val_ori, opt.device)
         loss_list_val_ori.append(loss_temp_val_ori)
         acc_list_val_ori.append(acc_temp_val_ori)
         
@@ -249,5 +264,14 @@ if __name__ == '__main__':
     plt.plot(acc_list_val)
     plt.plot(acc_list_val_ori)
     plt.show()
+    
+    # 绘制混淆矩阵
+    out_lab_np = []
+    for j in range(len(out_lab)):
+        for i in range(len(out_lab[j])):
+            out_lab_np.append(out_lab[j][i])
+    out_lab_np = np.array(out_lab_np)
+    cm = metrics.confusion_matrix(labs_val, out_lab_np)
+    plotConfusionMatrix(cm)
     
     
