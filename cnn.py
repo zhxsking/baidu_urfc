@@ -81,7 +81,7 @@ class mResNet18(nn.Module):
         self.layer4 = mdl.layer4
         
         self.avgpool = mdl.avgpool
-#        self.fc = nn.Linear(256, 9)
+        self.drop = nn.Dropout(0.5)
         self.fc = nn.Linear(mdl.fc.in_features, 9)
         
         if not(pretrained):
@@ -114,7 +114,9 @@ class mResNet18(nn.Module):
         x_fea = x
         
         x = x.reshape(x.size(0), -1)
+        x = self.drop(x)
         x = self.fc(x)
+        
         
 #        x = F.log_softmax(x, dim=1)
         return x, x_fea
