@@ -83,7 +83,7 @@ if __name__ == '__main__':
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
-    net = mResNet18(pretrained=True).to(opt.device)
+    net = mDenseNet(pretrained=opt.pretrained).to(opt.device)
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
 #    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
