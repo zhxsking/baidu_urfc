@@ -135,7 +135,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             
-            print('\rbatch {}/{} interim loss is: {}'
+            print('\rbatch {}/{} interim loss is: {:.4f}'
                   .format(cnt, len(dataloader_train), loss.item()), end='\r')
             
             _, preds = torch.max(out, 1)
@@ -188,7 +188,7 @@ if __name__ == '__main__':
             early_stop += 1
             if early_stop == opt.early_stop_num: break
         
-        print('epoch {}/{}, train val val-ori loss {:.4f} {:.4f} {:.4f}, acc {:.4f} {:.4f} {:.4f}'
+        print('\repoch {}/{}, train val val-ori loss {:.4f} {:.4f} {:.4f}, acc {:.4f} {:.4f} {:.4f}'
               .format(epoch+1, opt.epochs, loss_temp_train, loss_temp_val, 
                       loss_temp_val_ori, acc_temp_train, acc_temp_val, acc_temp_val_ori))
         torch.save({'net':net.state_dict()}, r'checkpoint/cnn-epoch-{}.pkl'.format(epoch+1))
