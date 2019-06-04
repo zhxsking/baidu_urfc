@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn import metrics
 
 from preprocess import imgProc
-from cnn import mResNet18
+from cnn import mResNet, mDenseNet
 from urfc_option import Option
 
 

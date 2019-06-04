@@ -64,7 +64,7 @@ class CNN(nn.Module):
 #        x = F.log_softmax(x, dim=1)
         return x
 
-class mResNet18(nn.Module):
+class mResNet(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
         mdl = models.resnext101_32x8d(pretrained=pretrained)
@@ -121,6 +121,45 @@ class mResNet18(nn.Module):
 #        x = F.log_softmax(x, dim=1)
         return x, x_fea
 
+class mDenseNet(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+        mdl = models.densenet121(pretrained=pretrained)
+        
+#        self.features_all = list(mdl.children())
+        self.features = mdl.features
+        self.features.conv0 = nn.Conv2d(4, 64, kernel_size=7, stride=2, 
+                                        padding=3, bias=False)
+        self.drop = nn.Dropout(0.5)
+        self.fc = nn.Linear(mdl.classifier.in_features, 9)
+        
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+        
+    def forward(self, x_img, x_visit):
+        # N,7,26,24整型为N,1,56,78
+        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
+        # pad为N,1,100,100
+        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
+        
+        x = torch.cat((x_img, x_visit), dim=1)
+        
+        features = self.features(x)
+        out = F.relu(features, inplace=True)
+        out = F.adaptive_avg_pool2d(out, (1, 1))
+        out_fea = out
+        out = out.view(features.size(0), -1)
+        out = self.fc(out)
+ 
+        return out, out_fea
+
 
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -132,13 +171,12 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = mResNet18(pretrained=False).to(device)
-#    net = CNN().to(device)
+    net = mDenseNet(pretrained=False).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
     
-    bs = 256
+    bs = 1
     test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
     test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
 
