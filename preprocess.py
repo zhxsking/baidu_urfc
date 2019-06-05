@@ -16,22 +16,27 @@ import torch
 import cv2
 
 from urfc_option import Option
+from dehaze import deHaze
 
 
 def imgProc(x):
     '''image预处理，x为NHWC格式uint8类型的numpy矩阵，生成NCHW的tensor'''
-    for j in range(x.shape[0]):
-        for i in range(3):
-            x[j,:,:,i] = cv2.equalizeHist(x[j,:,:,i]) # 直方图均衡
+#    for j in range(x.shape[0]):
+#        for i in range(3):
+#            x[j,:,:,i] = cv2.equalizeHist(x[j,:,:,i]) # 直方图均衡
     
     x = x.astype(np.float32) / 255.0 # 归一化
+    
+#    for j in range(x.shape[0]):
+#        x[j,:,:,:] = deHaze(x[j,:,:,:]) # 去雾
+    
     x = x.transpose(0,3,1,2)
     x = torch.as_tensor(x, dtype=torch.float32)
     
     # 每张图减去均值，匀光
-    for j in range(x.shape[0]):
-        for i in range(3):
-            x[j,i,:,:] -= x[j,i,:,:].mean()
+#    for j in range(x.shape[0]):
+#        for i in range(3):
+#            x[j,i,:,:] -= x[j,i,:,:].mean()
     
     means = [x[:,i,:,:].mean() for i in range(3)]
     stds = [x[:,i,:,:].std() for i in range(3)]

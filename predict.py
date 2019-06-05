@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 
 from preprocess import imgProc
-from cnn import mResNet, mDenseNet, mSENet
+from cnn import mResNet18, mResNet, mDenseNet, mSENet
 from urfc_option import Option
 
 
