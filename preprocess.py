@@ -148,49 +148,7 @@ def imgsAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
             deleteFile(join(dir_img, str(i).zfill(3), "output"))
         _imgAug(join(dir_img, str(i).zfill(3)), crop_w, crop_h, num_img, multi_threaded=multi_threaded)
 
-def getSampleTxt(dir_img):
-    '''将数据分为训练集和验证集，写入txt'''
-    
-    # 读取数据
-    dirs = sorted(os.listdir(dir_img))
-    files = {}
-    for dir in dirs:
-        path = join(dir_img, dir)
-        files[int(dir)] = []
-        for file in os.listdir(path):
-            files[int(dir)].append(join(path, file))
-    
-    #各类比例
-    nums = [len(files[i+1]) for i in range(9)]
-    pert = [(sum(nums) - nums[i]) / sum(nums)  for i in range(9)]
-    print(pert)
-    
-    # 每一类采样200作为验证集，剩下的为训练集
-    valid_data = {}
-    train_data = {}
-    for i in range(1, 10):
-        valid_data[i] = random.sample(files[i], 200)
-        train_data[i] = list(set(files[i]) - set(valid_data[i]))
-    
-    # 初始化保存目录
-    if not os.path.exists("data"):
-        os.makedirs("data")
-    
-    # train写入txt
-    f = open("data/train_ori.txt", "w+")
-    for i in range(1, 10):
-        for item in train_data[i]:
-            f.write(item.split('.')[0] + "\n")
-    f.close()
-    
-    # val写入txt
-    f = open("data/val_ori.txt", "w+")
-    for i in range(1, 10):
-        for item in valid_data[i]:
-            f.write(item.split('.')[0] + "\n")
-    f.close()
-
-def getOriSampleTxt(dir_img, path_txt):
+def getSampleTxt(dir_img, path_txt, aug=True):
     '''将增广后的数据写入txt'''
     
     print('Get Sample Txt...')
@@ -198,7 +156,13 @@ def getOriSampleTxt(dir_img, path_txt):
     dirs = sorted(os.listdir(dir_img))
     files = {}
     for dir in dirs:
-        path = join(dir_img, dir)
+        if aug:
+            path = join(dir_img, dir, "output")
+        else:
+            # 删除output文件夹
+            if os.path.exists(join(dir_img, dir, "output")):
+                deleteFile(join(dir_img, dir, "output"))
+            path = join(dir_img, dir)
         files[int(dir)] = []
         for file in os.listdir(path):
             files[int(dir)].append(join(path, file))
@@ -218,68 +182,8 @@ def getOriSampleTxt(dir_img, path_txt):
         for item in files[i]:
             f.write(item[0:-4] + "\n")
     f.close()
-
-def getAugSampleTxt(dir_img, path_txt):
-    '''将增广后的数据写入txt'''
-    
-    print('Get Sample Txt...')
-    # 读取数据
-    dirs = sorted(os.listdir(dir_img))
-    files = {}
-    for dir in dirs:
-        path = join(dir_img, dir, "output")
-        files[int(dir)] = []
-        for file in os.listdir(path):
-            files[int(dir)].append(join(path, file))
-    
-    #各类比例
-    nums = [len(files[i+1]) for i in range(9)]
-    pert = [(sum(nums) - nums[i]) / sum(nums)  for i in range(9)]
-    print(pert)
-    
-    # 初始化保存目录
-    if not os.path.exists("data"):
-        os.makedirs("data")
-    
-    # 写入txt
-    f = open(path_txt, "w+")
-    for i in range(1, 10):
-        for item in files[i]:
-            f.write(item[0:-4] + "\n")
-    f.close()
-
 
 def imgs2npy(data_npy):
-    '''将图片集转换为一个npy文件'''
-    
-    print('Image to npy...')
-    # 初始化保存目录
-    if not os.path.exists(data_npy):
-        os.makedirs(data_npy)
-     
-    data_list = list(pd.read_csv("data/train.txt", header=None)[0])
-    labels = [int(a.split('\\')[-1][7:10]) for a in data_list]
-    imgs = []
-    for file in tqdm(data_list):
-        img = plt.imread(file + ".jpg")
-        imgs.append(img)
-    imgs = np.array(imgs)
-    labels = np.array(labels, dtype=np.uint8)
-    np.save(join(data_npy, "train-img.npy"), imgs)
-    np.save(join(data_npy, "train-label.npy"), labels)
-    
-    data_list = list(pd.read_csv("data/val.txt", header=None)[0])
-    labels = [int(a.split('\\')[-1][7:10]) for a in data_list]
-    imgs = []
-    for file in tqdm(data_list):
-        img = plt.imread(file + ".jpg")
-        imgs.append(img)
-    imgs = np.array(imgs)
-    labels = np.array(labels, dtype=np.uint8)
-    np.save(join(data_npy, "val-img.npy"), imgs)
-    np.save(join(data_npy, "val-label.npy"), labels)
-
-def augOriImgs2npy(data_npy):
     '''将增广的图片集转换为一个npy文件'''
     
     print('Image to npy...')
@@ -289,7 +193,13 @@ def augOriImgs2npy(data_npy):
     
     # 训练集
     data_list = list(pd.read_csv("data/train.txt", header=None)[0])
-    labels = [int(a.split('\\')[-1][0:3]) for a in data_list]
+    
+    names = [a.split('\\')[-1] for a in data_list]
+    if 'original' in names[0]: # 文件名包含original则说明是增广数据
+        labels = [int(a.split('\\')[-1][0:3]) for a in data_list]
+    else:
+        labels = [int(a.split('\\')[-2]) for a in data_list]
+    
     imgs = []
     for file in tqdm(data_list):
         img = plt.imread(file + ".jpg")
@@ -310,66 +220,7 @@ def augOriImgs2npy(data_npy):
     labels = np.array(labels, dtype=np.uint8)
     np.save(join(data_npy, "val-img.npy"), imgs)
     np.save(join(data_npy, "val-label.npy"), labels)
-
-def augImgs2npy(data_npy):
-    '''将增广的图片集转换为一个npy文件'''
     
-    print('Image to npy...')
-    # 初始化保存目录
-    if not os.path.exists(data_npy):
-        os.makedirs(data_npy)
-    
-    # 训练集
-    data_list = list(pd.read_csv("data/train.txt", header=None)[0])
-    labels = [int(a.split('\\')[-1][0:3]) for a in data_list]
-    imgs = []
-    for file in tqdm(data_list):
-        img = plt.imread(file + ".jpg")
-        imgs.append(img)
-    imgs = np.array(imgs)
-    labels = np.array(labels, dtype=np.uint8)
-    np.save(join(data_npy, "train-img.npy"), imgs)
-    np.save(join(data_npy, "train-label.npy"), labels)
-    
-    # 验证集
-    data_list = list(pd.read_csv("data/val.txt", header=None)[0])
-    labels = [int(a.split('\\')[-1][0:3]) for a in data_list]
-    imgs = []
-    for file in tqdm(data_list):
-        img = plt.imread(file + ".jpg")
-        imgs.append(img)
-    imgs = np.array(imgs)
-    labels = np.array(labels, dtype=np.uint8)
-    np.save(join(data_npy, "val-img.npy"), imgs)
-    np.save(join(data_npy, "val-label.npy"), labels)
-    
-    # 未增广的验证集
-    imgs = []
-    for file in tqdm(data_list):
-        dir_img = file.split('output')[0]
-        img = plt.imread(join(dir_img, file.split('\\')[-1][13:23]) + ".jpg")
-        imgs.append(img)
-    imgs = np.array(imgs)
-    np.save(join(data_npy, "val-img-ori.npy"), imgs)
-
-def testImgs2npy(dir_img_test, data_npy):
-    '''将测试集visit数据转换为一个npy文件'''
-    
-    print('Test Image to npy...')
-    # 初始化保存目录
-    if not os.path.exists(data_npy):
-        os.makedirs(data_npy)
-    
-    # 读取数据
-    img_names = sorted(os.listdir(dir_img_test))
-    
-    imgs = []
-    for img_name in tqdm(img_names):
-        img = plt.imread(join(dir_img_test, img_name))
-        imgs.append(img)
-    imgs = np.array(imgs)
-    np.save(join(data_npy, "test-img.npy"), imgs)
-
 def visit2array(table):
     '''将visit数据转换为矩阵'''
     
@@ -455,13 +306,22 @@ def visits2npy(dir_visit_npy, data_npy):
     visit_arrays = np.array(visit_arrays)
     np.save(join(data_npy, "val-visit.npy"), visit_arrays)
 
-def testVisits2npy(dir_visit_npy_test, data_npy):
-    '''将测试集visit数据转换为一个npy文件'''
-    
-    print('Test Visit to npy...')
+def testData2npy(dir_img_test, dir_visit_npy_test, data_npy):
+    '''将测试集数据转换为一个npy文件'''
+    print('Test Data to npy...')
     # 初始化保存目录
     if not os.path.exists(data_npy):
         os.makedirs(data_npy)
+    
+    # 读取数据
+    img_names = sorted(os.listdir(dir_img_test))
+    
+    imgs = []
+    for img_name in tqdm(img_names):
+        img = plt.imread(join(dir_img_test, img_name))
+        imgs.append(img)
+    imgs = np.array(imgs)
+    np.save(join(data_npy, "test-img.npy"), imgs)
     
     # 读取数据
     visit_names = sorted(os.listdir(dir_visit_npy_test))
@@ -481,15 +341,18 @@ if __name__ == '__main__':
     since = time.time() # 记录时间
 #    imgDataClean(opt.dir_img)
 #    imgData2val(opt.dir_img, opt.dir_img_val)
-    imgsAug(opt.dir_img, 100, 100, opt.num_train, multi_threaded=True)
-    getAugSampleTxt(opt.dir_img, "data/train.txt")
-    getOriSampleTxt(opt.dir_img_val, "data/val.txt")
-    augOriImgs2npy(opt.data_npy)
-    testImgs2npy(opt.dir_img_test, opt.data_npy)
+    
+#    imgsAug(opt.dir_img, 100, 100, opt.num_train, multi_threaded=True)
+    getSampleTxt(opt.dir_img, "data/train.txt", aug=False)
+    getSampleTxt(opt.dir_img_val, "data/val.txt", aug=False)
+    imgs2npy(opt.data_npy)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
-#    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
     visits2npy(opt.dir_visit_npy, opt.data_npy)
-    testVisits2npy(opt.dir_visit_npy_test, opt.data_npy)
+    
+    # 生成测试集数据
+#    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
+    testData2npy(opt.dir_img_test, opt.dir_visit_npy_test, opt.data_npy)
+    
     time_elapsed = time.time() - since # 用时
     print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
