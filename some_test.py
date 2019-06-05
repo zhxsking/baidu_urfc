@@ -8,7 +8,7 @@ import cv2
 from boxx import show
 
 from dehaze import deHaze
-
+from linear_p import linear_p
 from urfc_option import Option
 
 
@@ -39,17 +39,30 @@ res = np.zeros((pic_num*100, pic_num*100, 3), dtype=np.float64)
 for i in range(pic_num):
     for j in range(pic_num):
         img = plt.imread(files[pic_type][pic_num*i+j]) / 255
+        
 #        img = histq(img)
-        img = deHaze(img)
-        r = (img[:,:,0]).copy()
-        g = (img[:,:,1]).copy()
-        b = (img[:,:,2]).copy()
+#        img = deHaze(img)
+#        img -= np.mean(img)
+#        img[:,:,0] -= np.mean(img[:,:,0])
+#        img[:,:,1] -= np.mean(img[:,:,1])
+#        img[:,:,2] -= np.mean(img[:,:,2])
+#        img = deHaze(img)
+        img = linear_p(img, 0.02)
+        img[:,:,0] -= np.mean(img[:,:,0])
+        img[:,:,1] -= np.mean(img[:,:,1])
+        img[:,:,2] -= np.mean(img[:,:,2])
+#        img = deHaze(img)
+#        img = histq((img*255).astype(np.uint8))
+#        r = (img[:,:,0]).copy()
+#        g = (img[:,:,1]).copy()
+#        b = (img[:,:,2]).copy()
 #        r -= np.mean(r)
 #        g -= np.mean(g)
 #        b -= np.mean(b)
-        res[i*100:(i+1)*100, j*100:(j+1)*100, 0] = r
-        res[i*100:(i+1)*100, j*100:(j+1)*100, 1] = g
-        res[i*100:(i+1)*100, j*100:(j+1)*100, 2] = b
+#        res[i*100:(i+1)*100, j*100:(j+1)*100, 0] = r
+#        res[i*100:(i+1)*100, j*100:(j+1)*100, 1] = g
+#        res[i*100:(i+1)*100, j*100:(j+1)*100, 2] = b
+        res[i*100:(i+1)*100, j*100:(j+1)*100, :] = img
 #res = (res - np.mean(res)) / (np.std(res))
 res = (res - np.min(res)) / (np.max(res) - np.min(res))
 #plt.subplot(121)

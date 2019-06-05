@@ -17,10 +17,15 @@ import cv2
 
 from urfc_option import Option
 from dehaze import deHaze
+from linear_p import linear_p
 
 
 def imgProc(x):
     '''image预处理，x为NHWC格式uint8类型的numpy矩阵，生成NCHW的tensor'''
+    for j in range(x.shape[0]):
+        for i in range(3):
+            x[j,:,:,i] = linear_p(x[j,:,:,i], 0.02) # 拉伸
+    
 #    for j in range(x.shape[0]):
 #        for i in range(3):
 #            x[j,:,:,i] = cv2.equalizeHist(x[j,:,:,i]) # 直方图均衡
@@ -38,13 +43,13 @@ def imgProc(x):
 #        for i in range(3):
 #            x[j,i,:,:] -= x[j,i,:,:].mean()
     
+    # 标准化
     means = [x[:,i,:,:].mean() for i in range(3)]
     stds = [x[:,i,:,:].std() for i in range(3)]
-    # 标准化
     mean = torch.as_tensor(means, dtype=torch.float32)
     std = torch.as_tensor(stds, dtype=torch.float32)
-    
-    return x.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
+    x = x.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
+    return x
 
 def deleteFile(filePath):
     '''删除非空文件夹'''
