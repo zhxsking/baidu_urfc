@@ -10,7 +10,7 @@ class Option():
         self.epochs = 20
         self.lr = 1e-4
         self.batchsize = 1024 # 512 1024
-        self.weight_decay = 0.01
+        self.weight_decay = 0.1
         self.early_stop_num = 150 # acc在多少个epoch下都不提升就提前结束训练
         self.workers = 0 # 4 多进程，可能会卡程序
         self.pretrained = True
@@ -20,7 +20,7 @@ class Option():
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
         self.num_val = 500
-        self.num_train = 10000
+        self.num_train = 1000
         
         
         self.dir_npy_suffix = "_npy_26_24_7"

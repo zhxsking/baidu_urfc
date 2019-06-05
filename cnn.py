@@ -95,13 +95,13 @@ class mResNet18(nn.Module):
         
     def forward(self, x_img, x_visit):
         # N,7,26,24整型为N,1,56,78
-        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
-        # pad为N,1,100,100
-        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
+#        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
+#        # pad为N,1,100,100
+#        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
+#        
+#        x = torch.cat((x_img, x_visit), dim=1)
         
-        x = torch.cat((x_img, x_visit), dim=1)
-        
-        x = self.conv1(x)
+        x = self.conv1(x_img)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
