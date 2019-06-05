@@ -6,10 +6,18 @@ import os
 import matplotlib.pyplot as plt
 import cv2
 from boxx import show
+import torch
+import torch.nn as nn
+from torch.utils.data import TensorDataset, DataLoader
+from os.path import join
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn import metrics
 
 from dehaze import deHaze
 from linear_p import linear_p
 from urfc_option import Option
+from preprocess import imgProc
 
 
 def histq(img):
@@ -22,55 +30,56 @@ def histq(img):
     result = cv2.merge((rH, gH, bH))
     return result
 
+###############################################################################
 # 读取数据
-opt = Option()
-dirs = sorted(os.listdir(opt.dir_img))
-files = {}
-for dir in dirs:
-    path = join(opt.dir_img, dir)
-    files[int(dir)] = []
-    for file in os.listdir(path):
-        files[int(dir)].append(join(path, file))
-
-# 匀光测试
-pic_num = 10
-pic_type = 5
-res = np.zeros((pic_num*100, pic_num*100, 3), dtype=np.float64)
-for i in range(pic_num):
-    for j in range(pic_num):
-        img = plt.imread(files[pic_type][pic_num*i+j]) / 255
-        
-#        img = histq(img)
-#        img = deHaze(img)
-#        img -= np.mean(img)
-#        img[:,:,0] -= np.mean(img[:,:,0])
-#        img[:,:,1] -= np.mean(img[:,:,1])
-#        img[:,:,2] -= np.mean(img[:,:,2])
-#        img = deHaze(img)
-        img = linear_p(img, 0.02)
-        img[:,:,0] -= np.mean(img[:,:,0])
-        img[:,:,1] -= np.mean(img[:,:,1])
-        img[:,:,2] -= np.mean(img[:,:,2])
-#        img = deHaze(img)
-#        img = histq((img*255).astype(np.uint8))
-#        r = (img[:,:,0]).copy()
-#        g = (img[:,:,1]).copy()
-#        b = (img[:,:,2]).copy()
-#        r -= np.mean(r)
-#        g -= np.mean(g)
-#        b -= np.mean(b)
-#        res[i*100:(i+1)*100, j*100:(j+1)*100, 0] = r
-#        res[i*100:(i+1)*100, j*100:(j+1)*100, 1] = g
-#        res[i*100:(i+1)*100, j*100:(j+1)*100, 2] = b
-        res[i*100:(i+1)*100, j*100:(j+1)*100, :] = img
-#res = (res - np.mean(res)) / (np.std(res))
-res = (res - np.min(res)) / (np.max(res) - np.min(res))
-#plt.subplot(121)
-plt.imshow(res)
+#opt = Option()
+#dirs = sorted(os.listdir(opt.dir_img))
+#files = {}
+#for dir in dirs:
+#    path = join(opt.dir_img, dir)
+#    files[int(dir)] = []
+#    for file in os.listdir(path):
+#        files[int(dir)].append(join(path, file))
+#
+## 匀光测试
+#pic_num = 10
+#pic_type = 1
+#res = np.zeros((pic_num*100, pic_num*100, 3), dtype=np.float64)
+#for i in range(pic_num):
+#    for j in range(pic_num):
+#        img = plt.imread(files[pic_type][pic_num*i+j]) / 255
+#        
+##        img = histq(img)
+##        img = deHaze(img)
+##        img -= np.mean(img)
+##        img[:,:,0] -= np.mean(img[:,:,0])
+##        img[:,:,1] -= np.mean(img[:,:,1])
+##        img[:,:,2] -= np.mean(img[:,:,2])
+##        img = deHaze(img)
+#        img = linear_p(img, 0.02)
+##        img[:,:,0] -= np.mean(img[:,:,0])
+##        img[:,:,1] -= np.mean(img[:,:,1])
+##        img[:,:,2] -= np.mean(img[:,:,2])
+##        img = deHaze(img)
+##        img = histq((img*255).astype(np.uint8))
+##        r = (img[:,:,0]).copy()
+##        g = (img[:,:,1]).copy()
+##        b = (img[:,:,2]).copy()
+##        r -= np.mean(r)
+##        g -= np.mean(g)
+##        b -= np.mean(b)
+##        res[i*100:(i+1)*100, j*100:(j+1)*100, 0] = r
+##        res[i*100:(i+1)*100, j*100:(j+1)*100, 1] = g
+##        res[i*100:(i+1)*100, j*100:(j+1)*100, 2] = b
+#        res[i*100:(i+1)*100, j*100:(j+1)*100, :] = img
+##res = (res - np.mean(res)) / (np.std(res))
+#res = (res - np.min(res)) / (np.max(res) - np.min(res))
+##plt.subplot(121)
+#plt.imshow(res)
 #plt.imsave(r"data/test.jpg", res)
        
- 
-# 读取测试数据
+###############################################################################
+# 查看测试数据
 #opt = Option()
 #files = sorted(os.listdir(opt.dir_img_test))
 #
@@ -94,3 +103,30 @@ plt.imshow(res)
 #plt.subplot(122)
 #plt.imshow(res)
 #plt.imsave(r"data/test.jpg", res)
+
+###############################################################################
+# 检查数据
+opt = Option()
+imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
+imgs_val_ori = np.load(join(opt.data_npy, "val-img-ori.npy"))
+visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
+labs_val = np.load(join(opt.data_npy, "val-label.npy"))
+
+imgs_val = imgProc(imgs_val)
+imgs_val_ori = imgProc(imgs_val_ori)
+visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
+labs_val = torch.LongTensor(labs_val) - 1
+
+pic_num = 10
+res = np.zeros((pic_num*100, pic_num*100, 3), dtype=np.float64)
+for i in range(pic_num):
+    for j in range(pic_num):
+        img = imgs_val[pic_num*i+j,:].numpy().transpose((1,2,0))
+        res[i*100:(i+1)*100, j*100:(j+1)*100, :] = img
+#res = (res - np.mean(res)) / (np.std(res))
+res = (res - np.min(res)) / (np.max(res) - np.min(res))
+#plt.subplot(121)
+plt.imshow(res)
+
+
+
