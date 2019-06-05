@@ -54,28 +54,24 @@ if __name__ == '__main__':
     # 加载数据
     print('Loading Data...')
     imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
-    imgs_val_ori = np.load(join(opt.data_npy, "val-img-ori.npy"))
     visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
     labs_val = np.load(join(opt.data_npy, "val-label.npy"))
     
     imgs_val = imgProc(imgs_val)
-    imgs_val_ori = imgProc(imgs_val_ori)
     visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
     labs_val = torch.LongTensor(labs_val) - 1
     
     dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
                                   batch_size=opt.batchsize, num_workers=opt.workers)
-    dataloader_val_ori = DataLoader(dataset=TensorDataset(imgs_val_ori, visits_val, labs_val),
-                                  batch_size=opt.batchsize, num_workers=opt.workers)
     
     # 加载模型
     net = mResNet18().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-ori.pkl", map_location=opt.device)
+    state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
     net.load_state_dict(state['net'])
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
     # 验证原始数据
-    loss_temp_val_ori, acc_temp_val_ori, out_lab = evalNet(net, loss_func, dataloader_val_ori, opt.device)
+    loss_temp_val_ori, acc_temp_val_ori, out_lab = evalNet(net, loss_func, dataloader_val, opt.device)
 
     # 绘制混淆矩阵
     out_lab_np = []
