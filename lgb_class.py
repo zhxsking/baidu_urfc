@@ -10,7 +10,7 @@ from tqdm import tqdm
 import lightgbm as lgb
 
 from preprocess import imgProc
-from cnn import mResNet18
+from cnn import mResNet
 from urfc_option import Option
 
 
@@ -105,6 +105,15 @@ if __name__ == '__main__':
 
     
     # In[]
+    
+    fea_train = visits_train.cpu().numpy().reshape((fea_train.shape[0],-1))
+    lab_train = labs_train.numpy()
+    fea_val = visits_val.cpu().numpy().reshape((fea_val.shape[0],-1))
+    lab_val = labs_val.numpy()
+    fea_test = visits_test.cpu().numpy().reshape((fea_test.shape[0],-1))
+    lgb_train = lgb.Dataset(fea_train, lab_train)
+    lgb_eval = lgb.Dataset(fea_val, lab_val, reference=lgb_train)
+    
     # 参数
     params = {
         'task': 'train',
@@ -126,8 +135,6 @@ if __name__ == '__main__':
     
     # 训练
     print('Start training...')
-    lgb_train = lgb.Dataset(fea_train, lab_train)
-    lgb_eval = lgb.Dataset(fea_val, lab_val, reference=lgb_train)
     gbm = lgb.train(params,lgb_train,valid_sets=lgb_eval,early_stopping_rounds=10)
     
     # 保存模型到文件

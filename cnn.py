@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
+import pretrainedmodels
 
 
 class CNN(nn.Module):
@@ -160,6 +161,95 @@ class mDenseNet(nn.Module):
  
         return out, out_fea
 
+class mSENet(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+        if pretrained:
+            mdl= pretrainedmodels.__dict__['se_resnext50_32x4d'](num_classes=1000, pretrained='imagenet')
+        else:
+            mdl= pretrainedmodels.__dict__['se_resnext50_32x4d'](num_classes=1000, pretrained=None)
+        
+        self.features = list(mdl.children())[:-2]
+        self.features.append(nn.AdaptiveAvgPool2d(1))
+        self.features = nn.Sequential(*self.features)
+        
+        self.features[0].conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, 
+                                        padding=3, bias=False)
+        
+        self.fc = nn.Linear(mdl.last_linear.in_features, 9)
+        
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+        
+    def forward(self, x_img, x_visit):
+        # N,7,26,24整型为N,1,56,78
+        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
+        # pad为N,1,100,100
+        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
+        
+        x = torch.cat((x_img, x_visit), dim=1)
+        
+        features = self.features(x)
+        out = F.relu(features, inplace=True)
+        out = F.adaptive_avg_pool2d(out, (1, 1))
+        out_fea = out
+        out = out.view(features.size(0), -1)
+        out = self.fc(out)
+ 
+        return out, out_fea
+
+class mPNASNet(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+#        print(pretrainedmodels.model_names)
+        if pretrained:
+            mdl= pretrainedmodels.__dict__['pnasnet5large'](num_classes=1000, pretrained='imagenet')
+        else:
+            mdl= pretrainedmodels.__dict__['pnasnet5large'](num_classes=1000, pretrained=None)
+        
+        self.features = list(mdl.children())[:-3]
+        self.features.append(nn.Dropout(p=0.5))
+        self.features.append(nn.AdaptiveAvgPool2d(1))
+        self.features = nn.Sequential(*self.features)
+        
+        self.features[0].conv = nn.Conv2d(4, 96, kernel_size=3, stride=2, bias=False)
+        
+        self.fc = nn.Linear(mdl.last_linear.in_features, 9)
+        
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+        
+    def forward(self, x_img, x_visit):
+        # N,7,26,24整型为N,1,56,78
+        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
+        # pad为N,1,100,100
+        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
+        
+        x = torch.cat((x_img, x_visit), dim=1)
+        
+        features = self.features(x)
+        out = F.relu(features, inplace=True)
+        out = F.adaptive_avg_pool2d(out, (1, 1))
+        out_fea = out
+        out = out.view(features.size(0), -1)
+        out = self.fc(out)
+ 
+        return out, out_fea
+
 
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -171,7 +261,7 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = mDenseNet(pretrained=False).to(device)
+    net = mPNASNet(pretrained=False).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
