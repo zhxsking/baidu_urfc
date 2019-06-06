@@ -10,7 +10,7 @@ from tqdm import tqdm
 import lightgbm as lgb
 
 from preprocess import imgProc
-from cnn import mResNet
+from cnn import mResNet18
 from urfc_option import Option
 
 
@@ -22,7 +22,6 @@ if __name__ == '__main__':
     print('Loading Data...')
     imgs_train = np.load(join(opt.data_npy, "train-img.npy"))
     imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
-    imgs_val_ori = np.load(join(opt.data_npy, "val-img-ori.npy"))
     visits_train = np.load(join(opt.data_npy, "train-visit.npy"))
     visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
     labs_train = np.load(join(opt.data_npy, "train-label.npy"))
@@ -33,7 +32,6 @@ if __name__ == '__main__':
     
     imgs_train = imgProc(imgs_train)
     imgs_val = imgProc(imgs_val)
-    imgs_val_ori = imgProc(imgs_val_ori)
     visits_train = torch.FloatTensor(visits_train.transpose(0,3,1,2))
     visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
     labs_train = torch.LongTensor(labs_train) - 1 # 网络输出从0开始，数据集标签从1开始
@@ -43,74 +41,76 @@ if __name__ == '__main__':
     visits_test = torch.FloatTensor(visits_test.transpose(0,3,1,2))
     
     # In[]
-    dataloader_train = DataLoader(dataset=TensorDataset(imgs_train, visits_train, labs_train),
-                                  batch_size=opt.batchsize,  num_workers=opt.workers)
-    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
-                                  batch_size=opt.batchsize, num_workers=opt.workers)
-    dataloader_val_ori = DataLoader(dataset=TensorDataset(imgs_val_ori, visits_val, labs_val),
-                                  batch_size=opt.batchsize, num_workers=opt.workers)
-    dataloader_test = DataLoader(dataset=TensorDataset(imgs_test, visits_test),
-                                batch_size=opt.batchsize, num_workers=opt.workers)
-    
-    # 加载模型
-    net = mResNet18().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-ori.pkl", map_location=opt.device)
-    net.load_state_dict(state['net'])
+#    dataloader_train = DataLoader(dataset=TensorDataset(imgs_train, visits_train, labs_train),
+#                                  batch_size=opt.batchsize,  num_workers=opt.workers)
+#    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
+#                                  batch_size=opt.batchsize, num_workers=opt.workers)
+#    dataloader_test = DataLoader(dataset=TensorDataset(imgs_test, visits_test),
+#                                batch_size=opt.batchsize, num_workers=opt.workers)
+#    
+#    # 加载模型
+#    net = mResNet18().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-ori.pkl", map_location=opt.device)
+#    net.load_state_dict(state['net'])
     
     # In[]
     
-    since = time.time() # 记录时间
-    net.eval()
-    fea_train = torch.Tensor(1,net.fc.in_features).to(opt.device)
-    with torch.no_grad():
-        for (img, visit, _) in tqdm(dataloader_train):
-            img = img.to(opt.device)
-            visit = visit.to(opt.device)
-            _, out_fea = net(img, visit)
-            out_fea = out_fea.squeeze()
-            fea_train = torch.cat((fea_train, out_fea), dim=0)
-    fea_train = fea_train[0:-1, :].cpu().numpy()
-    lab_train = labs_train.numpy()
-    time_elapsed = time.time() - since # 用时
-    print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    
-    since = time.time() # 记录时间
-    net.eval()
-    fea_val = torch.Tensor(1,net.fc.in_features).to(opt.device)
-    with torch.no_grad():
-        for (img, visit, _) in tqdm(dataloader_val_ori):
-            img = img.to(opt.device)
-            visit = visit.to(opt.device)
-            _, out_fea = net(img, visit)
-            out_fea = out_fea.squeeze()
-            fea_val = torch.cat((fea_val, out_fea), dim=0)
-    fea_val = fea_val[0:-1, :].cpu().numpy()
-    lab_val = labs_val.numpy()
-    time_elapsed = time.time() - since # 用时
-    print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    
-    since = time.time() # 记录时间
-    net.eval()
-    fea_test = torch.Tensor(1,net.fc.in_features).to(opt.device)
-    with torch.no_grad():
-        for (img, visit) in tqdm(dataloader_test):
-            img = img.to(opt.device)
-            visit = visit.to(opt.device)
-            _, out_fea = net(img, visit)
-            out_fea = out_fea.squeeze()
-            fea_test = torch.cat((fea_test, out_fea), dim=0)
-    fea_test = fea_test[0:-1, :].cpu().numpy()
-    time_elapsed = time.time() - since # 用时
-    print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+#    since = time.time() # 记录时间
+#    net.eval()
+#    fea_train = torch.Tensor(1,net.fc.in_features).to(opt.device)
+#    with torch.no_grad():
+#        for (img, visit, _) in tqdm(dataloader_train):
+#            img = img.to(opt.device)
+#            visit = visit.to(opt.device)
+#            _, out_fea = net(img, visit)
+#            out_fea = out_fea.squeeze()
+#            fea_train = torch.cat((fea_train, out_fea), dim=0)
+#    fea_train = fea_train[0:-1, :].cpu().numpy()
+#    lab_train = labs_train.numpy()
+#    time_elapsed = time.time() - since # 用时
+#    print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+#    
+#    since = time.time() # 记录时间
+#    net.eval()
+#    fea_val = torch.Tensor(1,net.fc.in_features).to(opt.device)
+#    with torch.no_grad():
+#        for (img, visit, _) in tqdm(dataloader_val_ori):
+#            img = img.to(opt.device)
+#            visit = visit.to(opt.device)
+#            _, out_fea = net(img, visit)
+#            out_fea = out_fea.squeeze()
+#            fea_val = torch.cat((fea_val, out_fea), dim=0)
+#    fea_val = fea_val[0:-1, :].cpu().numpy()
+#    lab_val = labs_val.numpy()
+#    time_elapsed = time.time() - since # 用时
+#    print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+#    
+#    since = time.time() # 记录时间
+#    net.eval()
+#    fea_test = torch.Tensor(1,net.fc.in_features).to(opt.device)
+#    with torch.no_grad():
+#        for (img, visit) in tqdm(dataloader_test):
+#            img = img.to(opt.device)
+#            visit = visit.to(opt.device)
+#            _, out_fea = net(img, visit)
+#            out_fea = out_fea.squeeze()
+#            fea_test = torch.cat((fea_test, out_fea), dim=0)
+#    fea_test = fea_test[0:-1, :].cpu().numpy()
+#    time_elapsed = time.time() - since # 用时
+#    print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
     
     # In[]
     
-    fea_train = visits_train.cpu().numpy().reshape((fea_train.shape[0],-1))
+    fea_train = imgs_train.cpu().numpy()
+    fea_train = fea_train.reshape((fea_train.shape[0],-1))
     lab_train = labs_train.numpy()
-    fea_val = visits_val.cpu().numpy().reshape((fea_val.shape[0],-1))
+    fea_val = imgs_val.cpu().numpy()
+    fea_val = fea_val.reshape((fea_val.shape[0],-1))
     lab_val = labs_val.numpy()
-    fea_test = visits_test.cpu().numpy().reshape((fea_test.shape[0],-1))
+    fea_test = imgs_test.cpu().numpy()
+    fea_test = fea_test.reshape((fea_test.shape[0],-1))
+    
     lgb_train = lgb.Dataset(fea_train, lab_train)
     lgb_eval = lgb.Dataset(fea_val, lab_val, reference=lgb_train)
     
@@ -128,9 +128,9 @@ if __name__ == '__main__':
         'bagging_fraction': 0.8, # 建树的样本采样比例
         'bagging_freq': 5,  # k 意味着每 k 次迭代执行bagging
         'verbose': 1, # <0 显示致命的, =0 显示错误 (警告), >0 显示信息
-        "device": "gpu",
-        "gpu_platform_id": 0,
-        "gpu_device_id": 0,
+#        "device": "gpu",
+#        "gpu_platform_id": 0,
+#        "gpu_device_id": 0,
     }
     
     # 训练
