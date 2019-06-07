@@ -51,8 +51,11 @@ if __name__ == '__main__':
     #%% 调参
     def f(params):
         model = CatBoostClassifier(
-                learning_rate = params['lr'],
-                l2_leaf_reg = int(params['l2']),
+                learning_rate = 0.2,
+                l2_leaf_reg = params['l2'],
+                depth = params['depth'],
+                random_strength = params['random_strength'],
+                
                 iterations = 200,
                 eval_metric = 'Accuracy',
                 random_seed = 42,
@@ -66,8 +69,9 @@ if __name__ == '__main__':
         return -acc
     
     params_space = {
-            'lr': hyperopt.hp.uniform('lr', 1e-4, 1),
             'l2': hyperopt.hp.uniform('l2', 0, 5),
+            'depth': hyperopt.hp.choice('depth', range(1,17)),
+            'random_strength': hyperopt.hp.uniform('random_strength', 0, 50),
             }
     trials = hyperopt.Trials()
 
@@ -86,7 +90,11 @@ if __name__ == '__main__':
     model = CatBoostClassifier(
             learning_rate = 0.2,
             l2_leaf_reg = 2.6,
-            iterations = 150,
+            depth = 6,
+            random_strength = 1,
+            
+#            class_weights = [1,4],
+            iterations = 500,
             eval_metric = 'Accuracy',
             random_seed = 42,
             logging_level = 'Verbose',
