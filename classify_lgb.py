@@ -128,14 +128,15 @@ if __name__ == '__main__':
         'bagging_fraction': 0.8, # 建树的样本采样比例
         'bagging_freq': 5,  # k 意味着每 k 次迭代执行bagging
         'verbose': 1, # <0 显示致命的, =0 显示错误 (警告), >0 显示信息
-#        "device": "gpu",
-#        "gpu_platform_id": 0,
-#        "gpu_device_id": 0,
+        "device": "gpu",
+        "gpu_platform_id": 0,
+        "gpu_device_id": 0,
     }
     
     # 训练
     print('Start training...')
-    gbm = lgb.train(params,lgb_train,valid_sets=lgb_eval,early_stopping_rounds=10)
+    gbm = lgb.train(params,lgb_train,valid_sets=lgb_eval)
+#    gbm = lgb.train(params,lgb_train,valid_sets=lgb_eval,early_stopping_rounds=10)
     
     # 保存模型到文件
     gbm.save_model('model.txt')

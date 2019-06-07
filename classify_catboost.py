@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import torch
-from torch.utils.data import TensorDataset, DataLoader
 from os.path import join
 import time
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from catboost import CatBoostClassifier, Pool
+from sklearn.utils import shuffle
 
 from preprocess import imgProc
 from cnn import mResNet18
@@ -24,62 +23,63 @@ if __name__ == '__main__':
     imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
     visits_train = np.load(join(opt.data_npy, "train-visit.npy"))
     visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
-    labs_train = np.load(join(opt.data_npy, "train-label.npy"))
-    labs_val = np.load(join(opt.data_npy, "val-label.npy"))
-    
+    labs_train = np.load(join(opt.data_npy, "train-label.npy")) - 1
+    labs_val = np.load(join(opt.data_npy, "val-label.npy")) - 1
     imgs_test = np.load(join(opt.data_npy, "test-img.npy"))
     visits_test = np.load(join(opt.data_npy, "test-visit.npy"))
     
+    # 打乱数据
+    imgs_train, visits_train, labs_train = shuffle(imgs_train, visits_train, labs_train)
+    imgs_val, visits_val, labs_val = shuffle(imgs_val, visits_val, labs_val)
+    
+    # 预处理
     imgs_train = imgProc(imgs_train)
     imgs_val = imgProc(imgs_val)
-    visits_train = torch.FloatTensor(visits_train.transpose(0,3,1,2))
-    visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
-    labs_train = torch.LongTensor(labs_train) - 1 # 网络输出从0开始，数据集标签从1开始
-    labs_val = torch.LongTensor(labs_val) - 1
-    
     imgs_test = imgProc(imgs_test)
-    visits_test = torch.FloatTensor(visits_test.transpose(0,3,1,2))
+
     
     
     # In[]
     
-    fea_train = imgs_train.cpu().numpy()
+    fea_train = visits_train.numpy()
     fea_train = fea_train.reshape((fea_train.shape[0],-1))
-    lab_train = labs_train.numpy()
-    fea_val = imgs_val.cpu().numpy()
+
+    fea_val = visits_val.numpy()
     fea_val = fea_val.reshape((fea_val.shape[0],-1))
-    lab_val = labs_val.numpy()
-    fea_test = imgs_test.cpu().numpy()
+    
+    fea_test = visits_test.numpy()
     fea_test = fea_test.reshape((fea_test.shape[0],-1))
     
-    categorical_features_indices = np.where(fea_train.dtypes != np.float)[0]
-    train_pool = Pool(fea_train, lab_train, cat_features=categorical_features_indices)
-    val_pool = Pool(fea_val, lab_val, cat_features=categorical_features_indices)
-    
+    # In[]
+    print('Start training...')
     params = {
-        'iterations': 500,
-        'learning_rate': 0.1,
+        'iterations': 1500,
+        'learning_rate': 0.2,
         'eval_metric': 'Accuracy',
         'random_seed': 42,
         'logging_level': 'Verbose',
         'use_best_model': True,
-        'od_type': 'Iter', # early stop
-        'od_wait': 40,
-        'plot': True,
+#        'od_type': 'Iter', # early stop
+#        'od_wait': 140,
+        'task_type': 'GPU',
         }
     model = CatBoostClassifier(**params)
-    model.fit(train_pool, eval_set=val_pool)
+    model.fit(fea_train, labs_train, eval_set=(fea_val, labs_val))
     
+    eval_metrics = model.eval_metrics(Pool(fea_val, labs_val), ['AUC'])
+    ee=[]
+    for e in eval_metrics:
+        ee.append(eval_metrics[e])
+    ee = np.array(ee)
+        
     
     # 预测数据集
     print('Start predicting...')
-    y_pred = model.predict(fea_train)
-    print('The acc of prediction is:', sum(lab_train==y_pred) / len(y_pred))
-    
     y_pred_val = model.predict(fea_val)
-    print('The acc of prediction is:', sum(lab_val==y_pred_val) / len(y_pred_val))
+    print('The acc of prediction is:', sum(labs_val==y_pred_val.squeeze()) / len(y_pred_val))
     
     y_pred_test = model.predict(fea_test)
+    y_pred_test = (y_pred_test.squeeze()).astype(np.uint8)
     
     f = open(r"data/out-label-catboost.txt", "w+")
     cnt = 0
