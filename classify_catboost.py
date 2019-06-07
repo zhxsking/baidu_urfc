@@ -84,8 +84,9 @@ if __name__ == '__main__':
     #%% 训练
     print('Start training...')
     model = CatBoostClassifier(
-            iterations = 150,
             learning_rate = 0.2,
+            l2_leaf_reg = 2.6,
+            iterations = 150,
             eval_metric = 'Accuracy',
             random_seed = 42,
             logging_level = 'Verbose',
