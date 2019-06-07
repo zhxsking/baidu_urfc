@@ -40,7 +40,7 @@ if __name__ == '__main__':
     imgs_test = imgProc(imgs_test)
     visits_test = torch.FloatTensor(visits_test.transpose(0,3,1,2))
     
-    # In[]
+    #%% 
 #    dataloader_train = DataLoader(dataset=TensorDataset(imgs_train, visits_train, labs_train),
 #                                  batch_size=opt.batchsize,  num_workers=opt.workers)
 #    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
@@ -53,8 +53,7 @@ if __name__ == '__main__':
 #    state = torch.load(r"checkpoint\best-cnn-ori.pkl", map_location=opt.device)
 #    net.load_state_dict(state['net'])
     
-    # In[]
-    
+    #%% 
 #    since = time.time() # 记录时间
 #    net.eval()
 #    fea_train = torch.Tensor(1,net.fc.in_features).to(opt.device)
@@ -100,8 +99,7 @@ if __name__ == '__main__':
 #    print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
     
-    # In[]
-    
+    #%% 
     fea_train = imgs_train.cpu().numpy()
     fea_train = fea_train.reshape((fea_train.shape[0],-1))
     lab_train = labs_train.numpy()

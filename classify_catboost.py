@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from catboost import CatBoostClassifier, Pool
 from sklearn.utils import shuffle
+import hyperopt
 
 from preprocess import imgProc
 from cnn import mResNet18
@@ -36,34 +37,63 @@ if __name__ == '__main__':
     imgs_train = imgProc(imgs_train)
     imgs_val = imgProc(imgs_val)
     imgs_test = imgProc(imgs_test)
-
     
-    
-    # In[]
-    
-    fea_train = visits_train.numpy()
+    #%% 
+    fea_train = visits_train
     fea_train = fea_train.reshape((fea_train.shape[0],-1))
 
-    fea_val = visits_val.numpy()
+    fea_val = visits_val
     fea_val = fea_val.reshape((fea_val.shape[0],-1))
     
-    fea_test = visits_test.numpy()
+    fea_test = visits_test
     fea_test = fea_test.reshape((fea_test.shape[0],-1))
     
-    # In[]
+    #%% 调参
+    def f(params):
+        model = CatBoostClassifier(
+                learning_rate = params['lr'],
+                l2_leaf_reg = int(params['l2']),
+                iterations = 200,
+                eval_metric = 'Accuracy',
+                random_seed = 42,
+                use_best_model = True,
+                logging_level='Silent',
+                task_type='GPU',
+                )
+        model.fit(fea_train, labs_train, eval_set=(fea_val, labs_val))
+        y_pred_val = model.predict(fea_val)
+        acc = sum(labs_val==y_pred_val.squeeze()) / len(y_pred_val)
+        return -acc
+    
+    params_space = {
+            'lr': hyperopt.hp.uniform('lr', 1e-4, 1),
+            'l2': hyperopt.hp.uniform('l2', 0, 5),
+            }
+    trials = hyperopt.Trials()
+
+    best = hyperopt.fmin(
+            f,
+            space = params_space,
+            algo = hyperopt.tpe.suggest,
+            max_evals = 50,
+            trials = trials,
+            )
+
+
+
+    #%% 训练
     print('Start training...')
-    params = {
-        'iterations': 1500,
-        'learning_rate': 0.2,
-        'eval_metric': 'Accuracy',
-        'random_seed': 42,
-        'logging_level': 'Verbose',
-        'use_best_model': True,
-#        'od_type': 'Iter', # early stop
-#        'od_wait': 140,
-        'task_type': 'GPU',
-        }
-    model = CatBoostClassifier(**params)
+    model = CatBoostClassifier(
+            iterations = 150,
+            learning_rate = 0.2,
+            eval_metric = 'Accuracy',
+            random_seed = 42,
+            logging_level = 'Verbose',
+            use_best_model = True,
+    #        od_type = 'Iter', # early stop
+    #        od_wait = 140,
+            task_type = 'GPU',
+            )
     model.fit(fea_train, labs_train, eval_set=(fea_val, labs_val))
     
     eval_metrics = model.eval_metrics(Pool(fea_val, labs_val), ['AUC'])
@@ -71,7 +101,6 @@ if __name__ == '__main__':
     for e in eval_metrics:
         ee.append(eval_metrics[e])
     ee = np.array(ee)
-        
     
     # 预测数据集
     print('Start predicting...')
