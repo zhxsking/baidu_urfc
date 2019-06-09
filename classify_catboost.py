@@ -38,6 +38,9 @@ if __name__ == '__main__':
     imgs_val = imgProc(imgs_val)
     imgs_test = imgProc(imgs_test)
     
+    imgs_train = imgs_train.numpy()
+    imgs_val = imgs_val.numpy()
+    imgs_test = imgs_test.numpy()
     #%% 
     fea_train = visits_train
     fea_train = fea_train.reshape((fea_train.shape[0],-1))
@@ -49,49 +52,47 @@ if __name__ == '__main__':
     fea_test = fea_test.reshape((fea_test.shape[0],-1))
     
     #%% 调参
-    def f(params):
-        model = CatBoostClassifier(
-                learning_rate = 0.2,
-                l2_leaf_reg = params['l2'],
-                depth = params['depth'],
-                random_strength = params['random_strength'],
-                
-                iterations = 200,
-                eval_metric = 'Accuracy',
-                random_seed = 42,
-                use_best_model = True,
-                logging_level='Silent',
-                task_type='GPU',
-                )
-        model.fit(fea_train, labs_train, eval_set=(fea_val, labs_val))
-        y_pred_val = model.predict(fea_val)
-        acc = sum(labs_val==y_pred_val.squeeze()) / len(y_pred_val)
-        return -acc
-    
-    params_space = {
-            'l2': hyperopt.hp.uniform('l2', 0, 5),
-            'depth': hyperopt.hp.choice('depth', range(1,17)),
-            'random_strength': hyperopt.hp.uniform('random_strength', 0, 50),
-            }
-    trials = hyperopt.Trials()
-
-    best = hyperopt.fmin(
-            f,
-            space = params_space,
-            algo = hyperopt.tpe.suggest,
-            max_evals = 50,
-            trials = trials,
-            )
-
-
+#    def f(params):
+#        model = CatBoostClassifier(
+#                learning_rate = 0.2,
+#                l2_leaf_reg = params['l2'],
+#                depth = params['depth'],
+#                random_strength = params['random_strength'],
+#                
+#                iterations = 200,
+#                eval_metric = 'Accuracy',
+#                random_seed = 42,
+#                use_best_model = True,
+#                logging_level='Silent',
+#                task_type='GPU',
+#                )
+#        model.fit(fea_train, labs_train, eval_set=(fea_val, labs_val))
+#        y_pred_val = model.predict(fea_val)
+#        acc = sum(labs_val==y_pred_val.squeeze()) / len(y_pred_val)
+#        return -acc
+#    
+#    params_space = {
+#            'l2': hyperopt.hp.uniform('l2', 0, 5),
+#            'depth': hyperopt.hp.choice('depth', range(1,8)),
+#            'random_strength': hyperopt.hp.uniform('random_strength', 0, 10),
+#            }
+#    trials = hyperopt.Trials()
+#
+#    best = hyperopt.fmin(
+#            f,
+#            space = params_space,
+#            algo = hyperopt.tpe.suggest,
+#            max_evals = 50,
+#            trials = trials,
+#            )
 
     #%% 训练
     print('Start training...')
     model = CatBoostClassifier(
             learning_rate = 0.2,
-            l2_leaf_reg = 2.6,
-            depth = 6,
-            random_strength = 1,
+            l2_leaf_reg = 2,
+#            depth = 6,
+            random_strength = 3,
             
 #            class_weights = [1,4],
             iterations = 500,
