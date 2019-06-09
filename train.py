@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from sklearn import metrics
 
 from preprocess import imgProc
-from cnn import mResNet18, mResNet, mDenseNet, mSENet
+from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
 
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
-    net = mResNet18(pretrained=opt.pretrained).to(opt.device)
+    net = mDPN26(pretrained=opt.pretrained).to(opt.device)
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
 #    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)

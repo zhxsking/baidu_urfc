@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from torchvision import models
 import pretrainedmodels
 
+from multimodal import DPN26
+
 
 class CNN(nn.Module):
     def __init__(self, in_depth1=3, in_depth2=7):
@@ -293,6 +295,20 @@ class mPolyNet(nn.Module):
  
         return out, out_fea
 
+class mDPN26(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+
+        self.visit_model=DPN26()
+        
+        self.cls = nn.Linear(64, 9) 
+
+    def forward(self, x_img, x_vis):
+        x_vis = self.visit_model(x_vis)
+        x_cat = self.cls(x_vis)
+        return x_cat, x_vis
+
+
 
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -304,7 +320,7 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = mSENet(pretrained=False).to(device)
+    net = mDPN26(pretrained=False).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
