@@ -126,12 +126,13 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             
-            print('\rbatch {}/{} temporary loss is: {:.4f}'
-                  .format(cnt, len(dataloader_train), loss.item()), end='\r')
-            
             _, preds = torch.max(out, 1)
             loss_temp_train += loss.item()
-            acc_temp_train += (float(torch.sum(preds == out_gt.data)) / len(out_gt))
+            acc_tmp = (float(torch.sum(preds == out_gt.data)) / len(out_gt))
+            acc_temp_train += acc_tmp
+            
+            print('\rbatch {}/{} temporary loss: {:.4f} acc: {:.4f}'
+                  .format(cnt, len(dataloader_train), loss.item(), acc_tmp), end='\r')
         loss_temp_train /= cnt
         acc_temp_train /= cnt
         loss_list_train.append(loss_temp_train)

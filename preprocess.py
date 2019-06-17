@@ -59,7 +59,7 @@ def deleteFile(filePath):
                 os.remove(join(fileList[0],name))
         shutil.rmtree(filePath)
 
-def imgDataClean(dir_img, ratio_b=0.6, ratio_w=0.9):
+def imgDataClean(dir_img, ratio_b=0.9, ratio_w=0.9):
     '''清洗图片数据，删除大部分黑色图像'''
     # 初始化文件夹
     dir_img_cleaned = join(dir_img, pardir, "img_cleaned")
@@ -437,9 +437,9 @@ if __name__ == '__main__':
 #    imgData2val(opt.dir_img, opt.dir_img_val)
     
 #    imgsAug(opt.dir_img, 100, 100, opt.num_train, multi_threaded=True)
-#    getSampleTxt(opt.dir_img, "data/train.txt", aug=False)
-#    getSampleTxt(opt.dir_img_val, "data/val.txt", aug=False)
-#    imgs2npy(opt.data_npy)
+    getSampleTxt(opt.dir_img, "data/train.txt", aug=False)
+    getSampleTxt(opt.dir_img_val, "data/val.txt", aug=False)
+    imgs2npy(opt.data_npy)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
     visits2npy(opt.dir_visit_npy, opt.data_npy)
     
