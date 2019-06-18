@@ -501,7 +501,7 @@ if __name__ == '__main__':
 #    imgData2val(opt.dir_img, opt.dir_img_val)
     
 #    imgsAug(opt.dir_img, 100, 100, opt.num_train, multi_threaded=True)
-#    getSampleTxt(opt.dir_img, "data/train.txt", aug=False)
+    getSampleTxt(opt.dir_img, "data/train.txt", aug=False)
 #    getSampleTxt(opt.dir_img_val, "data/val.txt", aug=False)
 #    imgs2npy(opt.data_npy)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)

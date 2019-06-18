@@ -17,6 +17,7 @@ from preprocess import imgProc, aug_batch
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
+from urfc_utils import Logger
 
     
 def evalNet(net, loss_func, dataloader_val, device):
@@ -41,6 +42,8 @@ def evalNet(net, loss_func, dataloader_val, device):
 if __name__ == '__main__':
     __spec__ = None
     opt = Option()
+    log = Logger()
+    log.open(r"data/log.txt")
 
     # 初始化保存目录
     if not os.path.exists('checkpoint'):
@@ -89,8 +92,8 @@ if __name__ == '__main__':
 #    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 动态改变lr
 #    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5) # 动态改变lr
-#    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.5, patience=3, verbose=True)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.3, patience=3, verbose=True)
+#    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
     
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
@@ -117,7 +120,7 @@ if __name__ == '__main__':
         loss_temp_train = 0.0
         acc_temp_train = 0.0
         net.train()
-        scheduler.step(epoch)
+#        scheduler.step(epoch)
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
             img = aug_batch(img)
             img = img.to(opt.device)
@@ -149,7 +152,7 @@ if __name__ == '__main__':
         loss_list_val.append(loss_temp_val)
         acc_list_val.append(acc_temp_val)
         
-#        scheduler.step(acc_temp_val)
+        scheduler.step(acc_temp_val)
         
         # 更新最优模型
         if epoch > 0 and acc_temp_val >= best_acc:
@@ -171,10 +174,14 @@ if __name__ == '__main__':
             early_stop += 1
             if early_stop == opt.early_stop_num: break
         
-        print('\repoch {}/{}, train val loss {:.4f} {:.4f}, acc {:.4f} {:.4f}, best {:.4f} in epoch {}'
+        time_elapsed = time.time() - since
+        msg = ('\repoch {}/{}, train val loss {:.4f} {:.4f}, acc {:.4f} {:.4f}, best {:.4f} in epoch {}, time {:.0f}m {:.0f}s'
               .format(epoch+1, opt.epochs, loss_temp_train, loss_temp_val, 
                       acc_temp_train, acc_temp_val,
-                      best_acc, best_epoch))
+                      best_acc, best_epoch,
+                      time_elapsed // 60, time_elapsed % 60))
+        print(msg)
+        log.write(msg)
         torch.save({'net':net.state_dict()}, r'checkpoint/cnn-epoch-{}.pkl'.format(epoch+1))
     # 保存最佳模型
     best_net_state = {
@@ -208,9 +215,14 @@ if __name__ == '__main__':
     
     # 显示训练信息
     print('-' * 50)
-    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print('Best val Acc {:4f} in epoch {}, Best loss {:4f} in epoch {}'
+    msg = ('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+    print(msg)
+    log.write(msg)
+    msg = ('Best val Acc {:4f} in epoch {}, Best loss {:4f} in epoch {}'
           .format(best_acc, best_epoch, best_loss, best_epoch_loss))
+    print(msg)
+    log.write(msg)
+    log.close()
     
     # 训练完显示loss及Acc曲线
     plt.figure()
