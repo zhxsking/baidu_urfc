@@ -295,6 +295,58 @@ class mPolyNet(nn.Module):
  
         return out, out_fea
 
+class mSDNet(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+        if pretrained:
+            mdl= pretrainedmodels.__dict__['se_resnext50_32x4d'](num_classes=1000, pretrained='imagenet')
+        else:
+            mdl= pretrainedmodels.__dict__['se_resnext50_32x4d'](num_classes=1000, pretrained=None)
+        
+        self.features = list(mdl.children())[:-2]
+        self.features.append(nn.AdaptiveAvgPool2d(1))
+        self.features = nn.Sequential(*self.features)
+        
+        self.features[0].conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, 
+                                        padding=3, bias=False)
+        
+        self.fc = nn.Linear(mdl.last_linear.in_features+64, 9)
+        
+        self.visit_model=DPN26()
+        
+#        self.cls = nn.Linear(64, 9)
+        
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+        
+    def forward(self, x_img, x_vis):
+        # N,7,26,24整型为N,1,56,78
+#        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
+        # pad为N,1,100,100
+#        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
+        
+        x_vis = self.visit_model(x_vis)
+        
+        features = self.features(x_img)
+        x_img = F.relu(features, inplace=True)
+        x_img = F.adaptive_avg_pool2d(x_img, (1, 1))
+        x_img = x_img.view(features.size(0), -1)
+        
+        x = torch.cat((x_img, x_vis), dim=1)
+        
+        out_fea = x
+        
+        out = self.fc(x)
+ 
+        return out, out_fea
+
 class mDPN26(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
@@ -320,7 +372,7 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = mDPN26(pretrained=False).to(device)
+    net = mSDNet(pretrained=False).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])

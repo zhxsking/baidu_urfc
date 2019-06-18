@@ -13,8 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import metrics
 
-from preprocess import imgProc
-from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26
+from preprocess import imgProc, aug_batch
+from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
 
@@ -65,27 +65,32 @@ if __name__ == '__main__':
     labs_train = torch.LongTensor(labs_train) - 1 # 网络输出从0开始，数据集标签从1开始
     labs_val = torch.LongTensor(labs_val) - 1
     
+    print('image shape: ', imgs_train.shape, imgs_val.shape)
+    print('visit shape: ', visits_train.shape, visits_val.shape)
+    print('label data: ', labs_train.min(), labs_train.max())
+    
     dataloader_train = DataLoader(dataset=TensorDataset(imgs_train, visits_train, labs_train),
                                   batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
     dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
-                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
+                                  batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
     
-#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt")
+#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt", mode='train')
 #    dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
 #                            shuffle=True, num_workers=opt.workers)   
-#    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt")
+#    dataset_val = UrfcDataset(opt.dir_img_val, opt.dir_visit_npy, "data/val.txt", mode='val')
 #    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
-#                                shuffle=True, num_workers=opt.workers)
+#                                shuffle=False, num_workers=opt.workers)
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
-    net = mDPN26(pretrained=opt.pretrained).to(opt.device)
+    net = mSDNet(pretrained=opt.pretrained).to(opt.device)
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
 #    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 动态改变lr
 #    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5) # 动态改变lr
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.5, patience=3, verbose=True)
+#    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.5, patience=3, verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
     
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
@@ -112,8 +117,9 @@ if __name__ == '__main__':
         loss_temp_train = 0.0
         acc_temp_train = 0.0
         net.train()
-#        scheduler.step(epoch)
+        scheduler.step(epoch)
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
+            img = aug_batch(img)
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
@@ -143,7 +149,7 @@ if __name__ == '__main__':
         loss_list_val.append(loss_temp_val)
         acc_list_val.append(acc_temp_val)
         
-        scheduler.step(acc_temp_val)
+#        scheduler.step(acc_temp_val)
         
         # 更新最优模型
         if epoch > 0 and acc_temp_val >= best_acc:
@@ -165,9 +171,10 @@ if __name__ == '__main__':
             early_stop += 1
             if early_stop == opt.early_stop_num: break
         
-        print('\repoch {}/{}, train val loss {:.4f} {:.4f}, acc {:.4f} {:.4f}'
+        print('\repoch {}/{}, train val loss {:.4f} {:.4f}, acc {:.4f} {:.4f}, best {:.4f} in epoch {}'
               .format(epoch+1, opt.epochs, loss_temp_train, loss_temp_val, 
-                      acc_temp_train, acc_temp_val))
+                      acc_temp_train, acc_temp_val,
+                      best_acc, best_epoch))
         torch.save({'net':net.state_dict()}, r'checkpoint/cnn-epoch-{}.pkl'.format(epoch+1))
     # 保存最佳模型
     best_net_state = {

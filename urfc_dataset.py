@@ -11,35 +11,42 @@ from urfc_option import Option
 
 
 class UrfcDataset(Dataset):
-    def __init__(self, dir_img, dir_visit, path_txt):
+    def __init__(self, dir_img, dir_visit, path_txt, mode='train'):
         super().__init__()
         self.dir_img = dir_img
         self.dir_visit = dir_visit
+        self.mode = mode
         
         data_list = list(pd.read_csv(path_txt, header=None)[0])
         self.data_names = [a.split('\\')[-1] for a in data_list]
         
     def __getitem__(self, index):
-        label_str = self.data_names[index][7:10]
+        if self.mode == 'val':
+            label_str = self.data_names[index][7:10]
+            
+            img = Image.open(join(self.dir_img, label_str, self.data_names[index] + ".jpg"))
+            visit = np.load(join(self.dir_visit, self.data_names[index] + ".npy"))
+        else:
+            label_str = self.data_names[index][0:3]
+            
+            img = Image.open(join(self.dir_img, label_str, "output", self.data_names[index] + ".jpg"))
+            visit = np.load(join(self.dir_visit, self.data_names[index][13:23] + ".npy"))
         
-        img = Image.open(join(self.dir_img, label_str, self.data_names[index] + ".jpg"))
-        visit = np.load(join(self.dir_visit, self.data_names[index] + ".npy"))
-        
-        def subMean(x):
-            '''每张图减去均值，匀光'''
-            for i in range(3):
-                x[i,:,:] -= x[i,:,:].mean()
-            return x
+#        def subMean(x):
+#            '''每张图减去均值，匀光'''
+#            for i in range(3):
+#                x[i,:,:] -= x[i,:,:].mean()
+#            return x
         
         # 标准化
 #        means = (0.46832234, 0.53796417, 0.6216422)
 #        stds =(0.1810789, 0.16477963, 0.14735216)
-        means = (-1.3326176e-09, -5.8395827e-10, -1.153197e-10)
-        stds =(0.11115803, 0.09930103, 0.08884794)
+#        means = (-1.3326176e-09, -5.8395827e-10, -1.153197e-10)
+#        stds =(0.11115803, 0.09930103, 0.08884794)
         img_process = transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Lambda(subMean),
-                transforms.Normalize(means, stds),
+#                transforms.Lambda(subMean),
+#                transforms.Normalize(means, stds),
                 ])
         img = img_process(img)
         visit = transforms.ToTensor()(visit)

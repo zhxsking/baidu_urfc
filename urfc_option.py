@@ -28,7 +28,7 @@ class Option():
         self.dir_img = self.disk + r":\pic\URFC-baidu\train_image"
         self.dir_img_val = self.disk + r":\pic\URFC-baidu\val_image"
         self.dir_img_test = self.disk + r":\pic\URFC-baidu\test_image"
-        self.data_npy = self.disk + r":\pic\URFC-baidu\data_npy"
+        self.data_npy = self.disk + r":\pic\URFC-baidu\data_npy_" + str(self.num_train)
         self.dir_visit = self.disk + r":\pic\URFC-baidu\train_visit"
         self.dir_visit_test = self.disk + r":\pic\URFC-baidu\test_visit"
         self.dir_visit_npy = self.dir_visit + self.dir_npy_suffix
