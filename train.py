@@ -12,12 +12,11 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import metrics
-
-from preprocess import imgProc, aug_batch
+ 
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
-from urfc_utils import Logger
+from urfc_utils import Logger, imgProc, aug_batch
 
     
 def evalNet(net, loss_func, dataloader_val, device):

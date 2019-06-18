@@ -19,7 +19,7 @@ from imgaug import augmenters as iaa
 from dehaze import deHaze
 from linear_p import linear_p
 from urfc_option import Option
-from preprocess import imgProc
+from urfc_utils import imgProc
 
 
 def histq(img):
@@ -64,16 +64,16 @@ def aug_img(img):
             iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
             iaa.OneOf([
                 iaa.Dropout((0.01, 0.1), per_channel=0.5),
-                iaa.CoarseDropout((0.03, 0.15), size_percent=(0.02, 0.05),per_channel=0.2),
+#                iaa.CoarseDropout((0.03, 0.15), size_percent=(0.02, 0.05),per_channel=0.2),
             ]),
             iaa.OneOf([
                 iaa.Fog(),
                 iaa.Clouds(),
             ]),
-            iaa.Invert(0.05, per_channel=True),
+#            iaa.Invert(0.05, per_channel=True),
             iaa.Add((-10, 10), per_channel=0.5),
             iaa.Multiply((0.7, 1.3), per_channel=0.5),
-            iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
+#            iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
         ], random_order=True)
     ], random_order=True)
     
