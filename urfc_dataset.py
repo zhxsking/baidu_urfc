@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from os.path import join
 from PIL import Image
+import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 from imgaug import augmenters as iaa
@@ -23,7 +24,7 @@ class UrfcDataset(Dataset):
     def __getitem__(self, index):
         label_str = self.data_names[index][7:10]
         
-        img = Image.open(join(self.dir_img, label_str, self.data_names[index] + ".jpg"))
+        img = plt.imread(join(self.dir_img, label_str, self.data_names[index] + ".jpg"))
         visit = np.load(join(self.dir_visit, self.data_names[index] + ".npy"))
         
         img = self.augumentor(img)
@@ -40,6 +41,7 @@ class UrfcDataset(Dataset):
 #        means = (-1.3326176e-09, -5.8395827e-10, -1.153197e-10)
 #        stds =(0.11115803, 0.09930103, 0.08884794)
         img_process = transforms.Compose([
+                transforms.ToPILImage(),
                 transforms.ToTensor(),
 #                transforms.Lambda(subMean),
 #                transforms.Normalize(means, stds),

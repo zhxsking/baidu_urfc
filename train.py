@@ -78,10 +78,10 @@ if __name__ == '__main__':
     dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
                                   batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
     
-#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt")
+#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt")
 #    dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
 #                            shuffle=True, num_workers=opt.workers)   
-#    dataset_val = UrfcDataset(opt.dir_img_val, opt.dir_visit_npy, "data/val.txt")
+#    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt")
 #    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
 #                                shuffle=False, num_workers=opt.workers)
     

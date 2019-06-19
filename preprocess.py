@@ -105,7 +105,7 @@ def getSampleTxt(dir_img, num_train):
             f.write(item[0:-4] + "\n")
     f.close()
 
-def imgs2npy(data_npy):
+def imgs2npy(data_npy, get_ori=False):
     '''将图片集转换为一个npy文件'''
     
     print('Image to npy...')
@@ -113,18 +113,19 @@ def imgs2npy(data_npy):
     if not os.path.exists(data_npy):
         os.makedirs(data_npy)
     
-    # 训练集
-    data_list = list(pd.read_csv("data/train.txt", header=None)[0])
-    labels = [int(a.split('\\')[-2]) for a in data_list]
-    
-    imgs = []
-    for file in tqdm(data_list):
-        img = plt.imread(file + ".jpg")
-        imgs.append(img)
-    imgs = np.array(imgs)
-    labels = np.array(labels, dtype=np.uint8)
-    np.save(join(data_npy, "train-img.npy"), imgs)
-    np.save(join(data_npy, "train-label.npy"), labels)
+    if get_ori:
+        # 训练集
+        data_list = list(pd.read_csv("data/train.txt", header=None)[0])
+        labels = [int(a.split('\\')[-2]) for a in data_list]
+        
+        imgs = []
+        for file in tqdm(data_list):
+            img = plt.imread(file + ".jpg")
+            imgs.append(img)
+        imgs = np.array(imgs)
+        labels = np.array(labels, dtype=np.uint8)
+        np.save(join(data_npy, "train-img.npy"), imgs)
+        np.save(join(data_npy, "train-label.npy"), labels)
     
     # 过采样训练集
     data_list = list(pd.read_csv("data/train-over.txt", header=None)[0])
@@ -203,7 +204,7 @@ def visits2npys(dir_visit, dir_visit_npy):
         path_visit_npy = join(dir_visit_npy, visit_name.split('.')[0] + ".npy")
         np.save(path_visit_npy, visit_array)
 
-def visits2npy(dir_visit_npy, data_npy):
+def visits2npy(dir_visit_npy, data_npy, get_ori=False):
     '''将visit数据转换为一个npy文件'''
     
     print('Visit to npy...')
@@ -211,15 +212,16 @@ def visits2npy(dir_visit_npy, data_npy):
     if not os.path.exists(data_npy):
         os.makedirs(data_npy)
     
-    data_list = list(pd.read_csv("data/train.txt", header=None)[0])
-    visit_names = [a.split('\\')[-1] for a in data_list]
-    visit_arrays = []
-    for visit_name in tqdm(visit_names):
-        path_visit = join(dir_visit_npy, visit_name + ".npy")
-        visit_array = np.load(path_visit)
-        visit_arrays.append(visit_array)
-    visit_arrays = np.array(visit_arrays)
-    np.save(join(data_npy, "train-visit.npy"), visit_arrays)
+    if get_ori:
+        data_list = list(pd.read_csv("data/train.txt", header=None)[0])
+        visit_names = [a.split('\\')[-1] for a in data_list]
+        visit_arrays = []
+        for visit_name in tqdm(visit_names):
+            path_visit = join(dir_visit_npy, visit_name + ".npy")
+            visit_array = np.load(path_visit)
+            visit_arrays.append(visit_array)
+        visit_arrays = np.array(visit_arrays)
+        np.save(join(data_npy, "train-visit.npy"), visit_arrays)
     
     data_list = list(pd.read_csv("data/train-over.txt", header=None)[0])
     visit_names = [a.split('\\')[-1] for a in data_list]
@@ -371,9 +373,9 @@ if __name__ == '__main__':
     imgDataClean(opt.dir_img)
     
     getSampleTxt(opt.dir_img, opt.num_train)
-    imgs2npy(opt.data_npy)
+    imgs2npy(opt.data_npy, get_ori=False)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
-    visits2npy(opt.dir_visit_npy, opt.data_npy)
+    visits2npy(opt.dir_visit_npy, opt.data_npy, get_ori=False)
     
     # 生成测试集数据
 #    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)

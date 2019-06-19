@@ -22,78 +22,78 @@ from urfc_option import Option
 from urfc_utils import imgProc
 
 
-def histq(img):
-    (r, g, b) = cv2.split(img)
-    
-    bH = cv2.equalizeHist(b)
-    gH = cv2.equalizeHist(g)
-    rH = cv2.equalizeHist(r)
-    # 合并每一个通道
-    result = cv2.merge((rH, gH, bH))
-    return result
-
-def func_images(img, random_state, parents, hooks):
-    img = (linear_p(img, 0.02) * 255).astype(np.uint8)
-    return img
-
-def aug_img(img):
-    '''对uint8图像或图像的一个batch（NHWC）进行aug'''
-    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
-    aug_seq = iaa.Sequential([
-        iaa.Lambda(func_images=func_images),
-        iaa.Fliplr(0.5),
-        iaa.Flipud(0.5),
-        sometimes(iaa.Affine(
-            scale={"x": (0.9, 1.1), "y": (0.9, 1.1)},
-            translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-            rotate=(-15, 15),
-            shear=(-16, 16),
-            order=[0, 1],
-        )),
-        iaa.SomeOf((0, 5), [
-            iaa.OneOf([
-                iaa.GaussianBlur((0, 2)),
-                iaa.AverageBlur(k=(2, 5)),
-                iaa.MedianBlur(k=(3, 5)),
-            ]),
-            iaa.Sharpen(alpha=(0, 0.5), lightness=(0.8, 1.2)),
-            sometimes(iaa.OneOf([
-                iaa.EdgeDetect(alpha=(0, 0.7)),
-                iaa.DirectedEdgeDetect(alpha=(0, 0.7), direction=(0.0, 1.0)),
-            ])),
-            iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
-            iaa.OneOf([
-                iaa.Dropout((0.01, 0.1), per_channel=0.5),
-#                iaa.CoarseDropout((0.03, 0.15), size_percent=(0.02, 0.05),per_channel=0.2),
-            ]),
-            iaa.OneOf([
-                iaa.Fog(),
-                iaa.Clouds(),
-            ]),
-#            iaa.Invert(0.05, per_channel=True),
-            iaa.Add((-10, 10), per_channel=0.5),
-            iaa.Multiply((0.7, 1.3), per_channel=0.5),
-#            iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
-        ], random_order=True)
-    ], random_order=True)
-    
-    if (img.ndim == 3):
-        # 对单幅图像进行aug
-        img_aug = aug_seq.augment_image(img)
-    elif (img.ndim == 4):
-        # 对一个batch进行aug
-        img_aug = aug_seq.augment_images(img)
-    else:
-        img_aug = []
-    return img_aug
-
-def aug_batch(batch):
-    '''对torch的一个batch（NCHW）进行aug'''
-    batch = (batch.permute(0,2,3,1).numpy()*255).astype(np.uint8)
-    batch_aug = aug_img(batch)
-    batch_aug = (batch_aug / 255.0).astype(np.float32).transpose(0,3,1,2)
-    batch_aug = torch.as_tensor(batch_aug, dtype=torch.float32)
-    return batch_aug
+#def histq(img):
+#    (r, g, b) = cv2.split(img)
+#    
+#    bH = cv2.equalizeHist(b)
+#    gH = cv2.equalizeHist(g)
+#    rH = cv2.equalizeHist(r)
+#    # 合并每一个通道
+#    result = cv2.merge((rH, gH, bH))
+#    return result
+#
+#def func_images(img, random_state, parents, hooks):
+#    img = (linear_p(img, 0.02) * 255).astype(np.uint8)
+#    return img
+#
+#def aug_img(img):
+#    '''对uint8图像或图像的一个batch（NHWC）进行aug'''
+#    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+#    aug_seq = iaa.Sequential([
+#        iaa.Lambda(func_images=func_images),
+#        iaa.Fliplr(0.5),
+#        iaa.Flipud(0.5),
+#        sometimes(iaa.Affine(
+#            scale={"x": (0.9, 1.1), "y": (0.9, 1.1)},
+#            translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
+#            rotate=(-15, 15),
+#            shear=(-16, 16),
+#            order=[0, 1],
+#        )),
+#        iaa.SomeOf((0, 5), [
+#            iaa.OneOf([
+#                iaa.GaussianBlur((0, 2)),
+#                iaa.AverageBlur(k=(2, 5)),
+#                iaa.MedianBlur(k=(3, 5)),
+#            ]),
+#            iaa.Sharpen(alpha=(0, 0.5), lightness=(0.8, 1.2)),
+#            sometimes(iaa.OneOf([
+#                iaa.EdgeDetect(alpha=(0, 0.7)),
+#                iaa.DirectedEdgeDetect(alpha=(0, 0.7), direction=(0.0, 1.0)),
+#            ])),
+#            iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
+#            iaa.OneOf([
+#                iaa.Dropout((0.01, 0.1), per_channel=0.5),
+##                iaa.CoarseDropout((0.03, 0.15), size_percent=(0.02, 0.05),per_channel=0.2),
+#            ]),
+#            iaa.OneOf([
+#                iaa.Fog(),
+#                iaa.Clouds(),
+#            ]),
+##            iaa.Invert(0.05, per_channel=True),
+#            iaa.Add((-10, 10), per_channel=0.5),
+#            iaa.Multiply((0.7, 1.3), per_channel=0.5),
+##            iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
+#        ], random_order=True)
+#    ], random_order=True)
+#    
+#    if (img.ndim == 3):
+#        # 对单幅图像进行aug
+#        img_aug = aug_seq.augment_image(img)
+#    elif (img.ndim == 4):
+#        # 对一个batch进行aug
+#        img_aug = aug_seq.augment_images(img)
+#    else:
+#        img_aug = []
+#    return img_aug
+#
+#def aug_batch(batch):
+#    '''对torch的一个batch（NCHW）进行aug'''
+#    batch = (batch.permute(0,2,3,1).numpy()*255).astype(np.uint8)
+#    batch_aug = aug_img(batch)
+#    batch_aug = (batch_aug / 255.0).astype(np.float32).transpose(0,3,1,2)
+#    batch_aug = torch.as_tensor(batch_aug, dtype=torch.float32)
+#    return batch_aug
 
 since = time.time() # 记录时间
 
@@ -248,34 +248,65 @@ since = time.time() # 记录时间
 #print(time_elapsed)
 #plt.imshow(img_aug)
 
+##%%
+#opt = Option()
+#imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
+#visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
+#labs_val = np.load(join(opt.data_npy, "val-label.npy"))
+#
+#imgs_val = imgProc(imgs_val)
+#visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
+#labs_val = torch.LongTensor(labs_val) - 1
+#
+#batch = imgs_val[0:100,:]
+#batch_aug = aug_batch(batch)
+##batch = (batch.permute(0,2,3,1).numpy()*255).astype(np.uint8)
+##batch_aug = aug_img(batch)
+##batch_aug = (batch_aug / 255.0).astype(np.float32).transpose(0,3,1,2)
+##batch_aug = torch.as_tensor(batch_aug, dtype=torch.float32)
+#
+#time_elapsed = time.time() - since # 用时
+#print(time_elapsed)
+#
+#pic_num = 10
+#res = np.zeros((pic_num*100, pic_num*100, 3), dtype=np.float64)
+#for i in range(pic_num):
+#    for j in range(pic_num):
+#        img = batch_aug[pic_num*i+j,:].numpy().transpose((1,2,0))
+#        res[i*100:(i+1)*100, j*100:(j+1)*100, :] = img
+##res = (res - np.mean(res)) / (np.std(res))
+#res = (res - np.min(res)) / (np.max(res) - np.min(res))
+#plt.imshow(res)
+
 #%%
+from sklearn.ensemble import IsolationForest
 opt = Option()
-imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
-visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
-labs_val = np.load(join(opt.data_npy, "val-label.npy"))
+imgs_train = np.load(join(opt.data_npy, "train-img.npy"))
+visits_train = np.load(join(opt.data_npy, "train-visit.npy"))
+labs_train = np.load(join(opt.data_npy, "train-label.npy"))
 
-imgs_val = imgProc(imgs_val)
-visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
-labs_val = torch.LongTensor(labs_val) - 1
+x = []
+for i in range(imgs_train.shape[0]):
+    img = imgs_train[i,:]
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    x.append(img)
+x = np.array(x)
+x = x.reshape(x.shape[0], -1)
 
-batch = imgs_val[0:100,:]
-batch_aug = aug_batch(batch)
-#batch = (batch.permute(0,2,3,1).numpy()*255).astype(np.uint8)
-#batch_aug = aug_img(batch)
-#batch_aug = (batch_aug / 255.0).astype(np.float32).transpose(0,3,1,2)
-#batch_aug = torch.as_tensor(batch_aug, dtype=torch.float32)
+clf = IsolationForest(behaviour='new', verbose=1, contamination='auto')
+clf.fit(x)
+y_pred = clf.predict(x)
 
-time_elapsed = time.time() - since # 用时
-print(time_elapsed)
+idx = (np.where(y_pred == -1))[0]
 
-pic_num = 10
-res = np.zeros((pic_num*100, pic_num*100, 3), dtype=np.float64)
-for i in range(pic_num):
-    for j in range(pic_num):
-        img = batch_aug[pic_num*i+j,:].numpy().transpose((1,2,0))
-        res[i*100:(i+1)*100, j*100:(j+1)*100, :] = img
-#res = (res - np.mean(res)) / (np.std(res))
-res = (res - np.min(res)) / (np.max(res) - np.min(res))
-plt.imshow(res)
+f = open(r"data/train.txt", "r")
+train_files = f.readlines()
+f.close()
 
+bad_files = [train_files[i] for i in idx]
+
+f = open("data/bad-files-iforst.txt", "w+")
+for item in bad_files:
+    f.write(item + "\n")
+f.close()
 
