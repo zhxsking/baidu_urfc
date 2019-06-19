@@ -16,7 +16,7 @@ from sklearn import metrics
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
-from urfc_utils import Logger, imgProc, aug_batch
+from urfc_utils import Logger, imgProc, aug_batch, aug_test_batch
 
     
 def evalNet(net, loss_func, dataloader_val, device):
@@ -26,6 +26,7 @@ def evalNet(net, loss_func, dataloader_val, device):
     loss_temp = 0
     with torch.no_grad():
         for cnt, (img, visit, out_gt) in enumerate(dataloader_val, 1):
+#            img = aug_test_batch(img)
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
@@ -53,11 +54,11 @@ if __name__ == '__main__':
     
     # 加载数据
     print('Loading Data...')
-    imgs_train = np.load(join(opt.data_npy, "train-img.npy"))
+    imgs_train = np.load(join(opt.data_npy, "train-over-img.npy"))
     imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
-    visits_train = np.load(join(opt.data_npy, "train-visit.npy"))
+    visits_train = np.load(join(opt.data_npy, "train-over-visit.npy"))
     visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
-    labs_train = np.load(join(opt.data_npy, "train-label.npy"))
+    labs_train = np.load(join(opt.data_npy, "train-over-label.npy"))
     labs_val = np.load(join(opt.data_npy, "val-label.npy"))
     
     imgs_train = imgProc(imgs_train)
@@ -76,10 +77,10 @@ if __name__ == '__main__':
     dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
                                   batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
     
-#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt", mode='train')
+#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt")
 #    dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
 #                            shuffle=True, num_workers=opt.workers)   
-#    dataset_val = UrfcDataset(opt.dir_img_val, opt.dir_visit_npy, "data/val.txt", mode='val')
+#    dataset_val = UrfcDataset(opt.dir_img_val, opt.dir_visit_npy, "data/val.txt")
 #    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
 #                                shuffle=False, num_workers=opt.workers)
     

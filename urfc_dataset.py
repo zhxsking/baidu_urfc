@@ -11,26 +11,19 @@ from urfc_option import Option
 
 
 class UrfcDataset(Dataset):
-    def __init__(self, dir_img, dir_visit, path_txt, mode='train'):
+    def __init__(self, dir_img, dir_visit, path_txt):
         super().__init__()
         self.dir_img = dir_img
         self.dir_visit = dir_visit
-        self.mode = mode
         
         data_list = list(pd.read_csv(path_txt, header=None)[0])
         self.data_names = [a.split('\\')[-1] for a in data_list]
         
     def __getitem__(self, index):
-        if self.mode == 'val':
-            label_str = self.data_names[index][7:10]
-            
-            img = Image.open(join(self.dir_img, label_str, self.data_names[index] + ".jpg"))
-            visit = np.load(join(self.dir_visit, self.data_names[index] + ".npy"))
-        else:
-            label_str = self.data_names[index][0:3]
-            
-            img = Image.open(join(self.dir_img, label_str, "output", self.data_names[index] + ".jpg"))
-            visit = np.load(join(self.dir_visit, self.data_names[index][13:23] + ".npy"))
+        label_str = self.data_names[index][7:10]
+        
+        img = Image.open(join(self.dir_img, label_str, self.data_names[index] + ".jpg"))
+        visit = np.load(join(self.dir_visit, self.data_names[index] + ".npy"))
         
 #        def subMean(x):
 #            '''每张图减去均值，匀光'''

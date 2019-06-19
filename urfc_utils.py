@@ -90,6 +90,20 @@ def aug_img(img):
         img_aug = []
     return img_aug
 
+def aug_test_img(img):
+    '''对uint8图像或图像的一个batch（NHWC）进行aug'''
+    aug_seq = iaa.Lambda(func_images=func_images)
+    
+    if (img.ndim == 3):
+        # 对单幅图像进行aug
+        img_aug = aug_seq.augment_image(img)
+    elif (img.ndim == 4):
+        # 对一个batch进行aug
+        img_aug = aug_seq.augment_images(img)
+    else:
+        img_aug = []
+    return img_aug
+
 def aug_batch(batch):
     '''对torch的一个batch（NCHW）进行aug'''
     batch = (batch.permute(0,2,3,1).numpy()*255).astype(np.uint8)
@@ -98,6 +112,13 @@ def aug_batch(batch):
     batch_aug = torch.as_tensor(batch_aug, dtype=torch.float32)
     return batch_aug
 
+def aug_test_batch(batch):
+    '''对torch的一个batch（NCHW）进行aug'''
+    batch = (batch.permute(0,2,3,1).numpy()*255).astype(np.uint8)
+    batch_aug = aug_test_img(batch)
+    batch_aug = (batch_aug / 255.0).astype(np.float32).transpose(0,3,1,2)
+    batch_aug = torch.as_tensor(batch_aug, dtype=torch.float32)
+    return batch_aug
 
 class Logger(object):
     def __init__(self, lr=0, bs=0, wd=0, num_train=0):
