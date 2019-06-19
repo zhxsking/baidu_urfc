@@ -3,11 +3,12 @@
 import torch
 import random
 import numpy as np
+import imgaug as ia
 
 class Option():
     """定义网络的参数及其他"""
     def __init__(self):
-        self.epochs = 20
+        self.epochs = 30
         self.lr = 1e-3
         self.batchsize = 64 # 512 1024
         self.weight_decay = 0.01
@@ -38,9 +39,14 @@ class Option():
 #        self.stds =(0.10928233, 0.098093316, 0.087956846)
         
         seed = 47
+        ia.seed(seed)
         random.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
         torch.cuda.manual_seed(seed)
         torch.backends.cudnn.deterministic = True
         torch.cuda.empty_cache()
+#        sklearn
+
+        
+        

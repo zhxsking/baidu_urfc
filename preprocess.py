@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import os
-from os.path import join, pardir
+from os.path import join
 import shutil
 import stat
 import datetime
@@ -11,7 +11,6 @@ import time
 from tqdm import tqdm
 import random
 import matplotlib.pyplot as plt
-import Augmentor
 
 from urfc_option import Option
 
@@ -26,25 +25,17 @@ def deleteFile(filePath):
         shutil.rmtree(filePath)
 
 def imgDataClean(dir_img, ratio_b=0.9, ratio_w=0.9):
-    '''清洗图片数据，删除大部分黑色图像'''
-    # 初始化文件夹
-    dir_img_cleaned = join(dir_img, pardir, "img_cleaned")
-    if not os.path.exists(dir_img_cleaned):
-        os.mkdir(dir_img_cleaned)
+    '''清洗图片数据，记录大部分黑或大部分白的图像'''
+    print('Clean Data...')
+    
+    # 初始化保存目录
+    if not os.path.exists("data"):
+        os.makedirs("data")
     
     # 读取数据
-    dirs = sorted(os.listdir(dir_img))
-    files = {}
-    print('Clean Data...')
+    dirs = (os.listdir(dir_img))
+    f = open(r"data/bad-files.txt", "w+")
     for dir in tqdm(dirs):
-        files[int(dir)] = []
-        dir_img_cleaned_00 = join(dir_img_cleaned, dir)
-        if not os.path.exists(dir_img_cleaned_00):
-            os.mkdir(dir_img_cleaned_00)
-        
-        # 删除output文件夹
-        if os.path.exists(join(dir_img, dir, "output")):
-            deleteFile(join(dir_img, dir, "output"))
         for file in os.listdir(join(dir_img, dir)):
             path = join(dir_img, dir, file)
             img = plt.imread(path)
@@ -52,105 +43,66 @@ def imgDataClean(dir_img, ratio_b=0.9, ratio_w=0.9):
             # 图片黑色和白色部分占比大于ratio则删除
             if ((sum(sum(sum(img==0))) / (100*100*3)) > ratio_b or 
                 (sum(sum(sum(img==255))) / (100*100*3)) > ratio_w):
-#                shutil.copy(path, dir_img_cleaned_00)
-                shutil.move(path, join(dir_img_cleaned_00, file))
+                f.write(path + "\n")
                 continue
-            files[int(dir)].append(path)
+    f.close()
 
-def imgData2val(dir_img, dir_img_val):
-    '''分一部分数据作为验证集'''
-    # 初始化文件夹
-    if not os.path.exists(dir_img_val):
-        os.mkdir(dir_img_val)
-    
-    # 读取数据
-    dirs = sorted(os.listdir(dir_img))
-    files = {}
-    for dir in dirs:
-        # 删除output文件夹
-        if os.path.exists(join(dir_img, dir, "output")):
-            deleteFile(join(dir_img, dir, "output"))
-        
-        path = join(dir_img, dir)
-        files[int(dir)] = []
-        for file in os.listdir(path):
-            files[int(dir)].append(join(path, file))
-    
-    # 每一类采样200作为验证集，剩下的为训练集
-    valid_data = {}
-    for i in dirs:
-        valid_data[int(i)] = random.sample(files[int(i)], 200)
-    
-    # 移动验证集数据
-    for i in tqdm(dirs):
-        dir_img_val_00 = join(dir_img_val, i)
-        if not os.path.exists(dir_img_val_00):
-            os.mkdir(dir_img_val_00)
-        for item in valid_data[int(i)]:
-#            shutil.copy(item, dir_img_val_00)
-            shutil.move(item, join(dir_img_val_00, item.split('\\')[-1]))
-
-def _imgAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
-    '''图片数据增强'''
-    p = Augmentor.Pipeline(dir_img)
-    # 增强操作
-    p.crop_by_size(1, width=crop_w, height=crop_h, centre=False)
-    p.flip_left_right(0.5)
-    p.flip_top_bottom(0.5)
-#    p.random_erasing(0.5, rectangle_area=0.5) # 随机遮挡
-    p.rotate(0.5, max_left_rotation=20, max_right_rotation=20)
-    p.rotate_random_90(0.5) # 随机旋转90、180、270度，注意图片需为方的
-    p.zoom_random(0.3, percentage_area=0.8) # 随机放大
-    p.random_distortion(0.3,grid_height=5,grid_width=5,magnitude=2) # 弹性扭曲
-    p.shear(0.3, max_shear_left=5, max_shear_right=5) # 随机错切（斜向一边）
-#    p.skew(0.3, magnitude=0.3) # 透视形变
-    p.sample(num_img, multi_threaded=multi_threaded) # 多线程提速但占内存，输出大图慎用多线程防死机
-
-def imgsAug(dir_img, crop_w, crop_h, num_img, multi_threaded=False):
-    print('Image Augment...')
-    for i in range(1,10):
-        # 删除output文件夹
-        if os.path.exists(join(dir_img, str(i).zfill(3), "output")):
-            deleteFile(join(dir_img, str(i).zfill(3), "output"))
-        _imgAug(join(dir_img, str(i).zfill(3)), crop_w, crop_h, num_img, multi_threaded=multi_threaded)
-
-def getSampleTxt(dir_img, path_txt, aug=True):
-    '''将增广后的数据写入txt'''
-    
+def getSampleTxt(dir_img, num_train):
+    '''将数据写入txt'''
     print('Get Sample Txt...')
-    # 读取数据
-    dirs = sorted(os.listdir(dir_img))
-    files = {}
-    for dir in dirs:
-        if aug:
-            path = join(dir_img, dir, "output")
-        else:
-            # 删除output文件夹
-            if os.path.exists(join(dir_img, dir, "output")):
-                deleteFile(join(dir_img, dir, "output"))
-            path = join(dir_img, dir)
-        files[int(dir)] = []
-        for file in os.listdir(path):
-            files[int(dir)].append(join(path, file))
-    
-    #各类比例
-    nums = [len(files[i+1]) for i in range(9)]
-    pert = [(sum(nums) - nums[i]) / sum(nums)  for i in range(9)]
-    print(pert)
     
     # 初始化保存目录
     if not os.path.exists("data"):
         os.makedirs("data")
     
-    # 写入txt
-    f = open(path_txt, "w+")
+    # 读取数据
+    dirs = (os.listdir(dir_img))
+    files = []
+    for dir in dirs:
+        path = join(dir_img, dir)
+        for file in os.listdir(path):
+            files.append(join(path, file))
+    
+    f = open(r"data/bad-files.txt", "r")
+    bad_files = f.readlines()
+    f.close()
+    
+    good_files = list(set(files)-set(bad_files))
+        
+    f = open("data/val.txt", "w+")
+    valid_data = {}
+    train_data = {}
     for i in range(1, 10):
-        for item in files[i]:
+        tmp = [a for a in good_files if int(a.split('\\')[-2]) == i]
+        valid_data[i] = random.sample(tmp, 200)
+        train_data[i] = list(set(tmp) - set(valid_data[i]))
+        for item in valid_data[i]:
+            f.write(item[0:-4] + "\n")
+    f.close()
+    
+    f = open("data/train.txt", "w+")
+    for i in range(1, 10):
+        for item in train_data[i]:
+            f.write(item[0:-4]+ "\n")
+    f.close()
+    
+    train_data_over = {}
+    for i in range(1, 10):
+        if (num_train <= len(train_data[i])):
+            train_data_over[i] = random.sample(train_data[i], num_train)
+        else:
+            train_data_over[i] = train_data[i]
+            for j in range(num_train-len(train_data[i])):
+                train_data_over[i].append(train_data[i][random.randint(0, len(train_data[i])-1)])
+    
+    f = open("data/train-over.txt", "w+")
+    for i in range(1, 10):
+        for item in train_data_over[i]:
             f.write(item[0:-4] + "\n")
     f.close()
 
 def imgs2npy(data_npy):
-    '''将增广的图片集转换为一个npy文件'''
+    '''将图片集转换为一个npy文件'''
     
     print('Image to npy...')
     # 初始化保存目录
@@ -159,12 +111,7 @@ def imgs2npy(data_npy):
     
     # 训练集
     data_list = list(pd.read_csv("data/train.txt", header=None)[0])
-    
-    names = [a.split('\\')[-1] for a in data_list]
-    if 'original' in names[0]: # 文件名包含original则说明是增广数据
-        labels = [int(a.split('\\')[-1][0:3]) for a in data_list]
-    else:
-        labels = [int(a.split('\\')[-2]) for a in data_list]
+    labels = [int(a.split('\\')[-2]) for a in data_list]
     
     imgs = []
     for file in tqdm(data_list):
@@ -174,6 +121,19 @@ def imgs2npy(data_npy):
     labels = np.array(labels, dtype=np.uint8)
     np.save(join(data_npy, "train-img.npy"), imgs)
     np.save(join(data_npy, "train-label.npy"), labels)
+    
+    # 过采样训练集
+    data_list = list(pd.read_csv("data/train-over.txt", header=None)[0])
+    labels = [int(a.split('\\')[-2]) for a in data_list]
+    
+    imgs = []
+    for file in tqdm(data_list):
+        img = plt.imread(file + ".jpg")
+        imgs.append(img)
+    imgs = np.array(imgs)
+    labels = np.array(labels, dtype=np.uint8)
+    np.save(join(data_npy, "train-over-img.npy"), imgs)
+    np.save(join(data_npy, "train-over-label.npy"), labels)
     
     # 验证集
     data_list = list(pd.read_csv("data/val.txt", header=None)[0])
@@ -249,9 +209,6 @@ def visits2npy(dir_visit_npy, data_npy):
     
     data_list = list(pd.read_csv("data/train.txt", header=None)[0])
     visit_names = [a.split('\\')[-1] for a in data_list]
-    if 'original' in visit_names[0]: # 文件名包含original则说明是增广数据
-        visit_names = [a[13:23] for a in visit_names]
-    
     visit_arrays = []
     for visit_name in tqdm(visit_names):
         path_visit = join(dir_visit_npy, visit_name + ".npy")
@@ -260,10 +217,18 @@ def visits2npy(dir_visit_npy, data_npy):
     visit_arrays = np.array(visit_arrays)
     np.save(join(data_npy, "train-visit.npy"), visit_arrays)
     
+    data_list = list(pd.read_csv("data/train-over.txt", header=None)[0])
+    visit_names = [a.split('\\')[-1] for a in data_list]
+    visit_arrays = []
+    for visit_name in tqdm(visit_names):
+        path_visit = join(dir_visit_npy, visit_name + ".npy")
+        visit_array = np.load(path_visit)
+        visit_arrays.append(visit_array)
+    visit_arrays = np.array(visit_arrays)
+    np.save(join(data_npy, "train-over-visit.npy"), visit_arrays)
+    
     data_list = list(pd.read_csv("data/val.txt", header=None)[0])
     visit_names = [a.split('\\')[-1] for a in data_list]
-    if 'original' in visit_names[0]: # 文件名包含original则说明是增广数据
-        visit_names = [a[13:23] for a in visit_names]
     visit_arrays = []
     for visit_name in tqdm(visit_names):
         path_visit = join(dir_visit_npy, visit_name + ".npy")
@@ -273,7 +238,7 @@ def visits2npy(dir_visit_npy, data_npy):
     np.save(join(data_npy, "val-visit.npy"), visit_arrays)
 
 def visits2npy_simple_fea(dir_visit_npy, data_npy):
-    '''将visit数据转换为一个npy文件'''
+    '''visit数据简单特征提取'''
     
     print('Visit to npy...')
     # 初始化保存目录
@@ -399,19 +364,16 @@ def testData2npy_simple_fea(dir_img_test, dir_visit_npy_test, data_npy):
 if __name__ == '__main__':
     opt = Option()
     since = time.time() # 记录时间
-#    imgDataClean(opt.dir_img)
-#    imgData2val(opt.dir_img, opt.dir_img_val)
+    imgDataClean(opt.dir_img)
     
-#    imgsAug(opt.dir_img, 100, 100, opt.num_train, multi_threaded=True)
-    getSampleTxt(opt.dir_img, "data/train.txt", aug=False)
-#    getSampleTxt(opt.dir_img_val, "data/val.txt", aug=False)
-#    imgs2npy(opt.data_npy)
+    getSampleTxt(opt.dir_img, opt.num_train)
+    imgs2npy(opt.data_npy)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
-#    visits2npy(opt.dir_visit_npy, opt.data_npy)
+    visits2npy(opt.dir_visit_npy, opt.data_npy)
     
     # 生成测试集数据
 #    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
-#    testData2npy(opt.dir_img_test, opt.dir_visit_npy_test, opt.data_npy)
+    testData2npy(opt.dir_img_test, opt.dir_visit_npy_test, opt.data_npy)
     
     time_elapsed = time.time() - since # 用时
     print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))

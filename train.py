@@ -41,7 +41,7 @@ def evalNet(net, loss_func, dataloader_val, device):
 if __name__ == '__main__':
     __spec__ = None
     opt = Option()
-    log = Logger()
+    log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
 
     # 初始化保存目录
@@ -154,22 +154,22 @@ if __name__ == '__main__':
         scheduler.step(acc_temp_val)
         
         # 更新最优模型
-        if epoch > 0 and acc_temp_val >= best_acc:
+        if (epoch+1) > 0 and acc_temp_val >= best_acc:
             best_epoch = epoch + 1
             best_acc = acc_temp_val
             best_model = copy.deepcopy(net.state_dict())
             early_stop = 0
-        elif epoch > 0:
+        elif (epoch+1) > 0:
             early_stop += 1
             if early_stop == opt.early_stop_num: break
         
         # 更新最优loss模型
-        if epoch > 0 and loss_temp_val <= best_loss:
+        if (epoch+1) > 0 and loss_temp_val <= best_loss:
             best_epoch_loss = epoch + 1
             best_loss = loss_temp_val
             best_model_loss = copy.deepcopy(net.state_dict())
             early_stop = 0
-        elif epoch > 0:
+        elif (epoch+1) > 0:
             early_stop += 1
             if early_stop == opt.early_stop_num: break
         
