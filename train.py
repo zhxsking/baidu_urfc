@@ -55,10 +55,11 @@ if __name__ == '__main__':
     # 加载数据
     print('Loading Data...')
     imgs_train = np.load(join(opt.data_npy, "train-over-img.npy"))
-    imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
     visits_train = np.load(join(opt.data_npy, "train-over-visit.npy"))
-    visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
     labs_train = np.load(join(opt.data_npy, "train-over-label.npy"))
+    
+    imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
+    visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
     labs_val = np.load(join(opt.data_npy, "val-label.npy"))
     
     imgs_train = imgProc(imgs_train)

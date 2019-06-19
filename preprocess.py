@@ -11,6 +11,7 @@ import time
 from tqdm import tqdm
 import random
 import matplotlib.pyplot as plt
+from PIL import Image
 
 from urfc_option import Option
 
@@ -24,7 +25,7 @@ def deleteFile(filePath):
                 os.remove(join(fileList[0],name))
         shutil.rmtree(filePath)
 
-def imgDataClean(dir_img, ratio_b=0.9, ratio_w=0.9):
+def imgDataClean(dir_img, ratio_b=0.3, ratio_w=0.9):
     '''清洗图片数据，记录大部分黑或大部分白的图像'''
     print('Clean Data...')
     
@@ -38,11 +39,14 @@ def imgDataClean(dir_img, ratio_b=0.9, ratio_w=0.9):
     for dir in tqdm(dirs):
         for file in os.listdir(join(dir_img, dir)):
             path = join(dir_img, dir, file)
-            img = plt.imread(path)
+#            img = plt.imread(path)
+            img = Image.open(path)
+            img_gray = img.convert('L')
+            img_gray = np.array(img_gray)
             
             # 图片黑色和白色部分占比大于ratio则删除
-            if ((sum(sum(sum(img==0))) / (100*100*3)) > ratio_b or 
-                (sum(sum(sum(img==255))) / (100*100*3)) > ratio_w):
+            if ((np.sum(img_gray==0) / (10000)) > ratio_b or 
+                (np.sum(img_gray==255) / (10000)) > ratio_w):
                 f.write(path + "\n")
                 continue
     f.close()
