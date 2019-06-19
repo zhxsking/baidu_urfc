@@ -6,6 +6,7 @@ from os.path import join
 from PIL import Image
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
+from imgaug import augmenters as iaa
 
 from urfc_option import Option
 
@@ -24,6 +25,8 @@ class UrfcDataset(Dataset):
         
         img = Image.open(join(self.dir_img, label_str, self.data_names[index] + ".jpg"))
         visit = np.load(join(self.dir_visit, self.data_names[index] + ".npy"))
+        
+        img = self.augumentor(img)
         
 #        def subMean(x):
 #            '''每张图减去均值，匀光'''
@@ -48,7 +51,27 @@ class UrfcDataset(Dataset):
     
     def __len__(self):
         return len(self.data_names)
+    
+    def augumentor(self,image):
+        augment_img = iaa.Sequential([
+            iaa.Fliplr(0.5),
+            iaa.Flipud(0.5),
+            iaa.SomeOf((0,4),[
+                iaa.Affine(rotate=90),
+                iaa.Affine(rotate=180),
+                iaa.Affine(rotate=270),
+                iaa.Affine(shear=(-16, 16)),
+            ]),
+            iaa.OneOf([
+                    iaa.GaussianBlur((0, 3.0)), # blur images with a sigma between 0 and 3.0
+                    iaa.AverageBlur(k=(2, 7)), # blur image using local means with kernel sizes between 2 and 7
+                    iaa.MedianBlur(k=(3, 11)), # blur image using local medians with kernel sizes between 2 and 7
+                ]),
+            #iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)), # sharpen images
+            ], random_order=True)
 
+        image_aug = augment_img.augment_image(image)
+        return image_aug
 
 if __name__ == '__main__':
     __spec__ = None

@@ -123,7 +123,7 @@ if __name__ == '__main__':
         net.train()
 #        scheduler.step(epoch)
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
-            img = aug_batch(img)
+#            img = aug_batch(img)
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
