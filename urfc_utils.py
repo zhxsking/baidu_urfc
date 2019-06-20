@@ -133,7 +133,7 @@ class Logger(object):
         self.file = open(file, mode)
         self.file.write('\n--------------------{}--------------------\n'
                         .format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-        self.file.write('lr {:.4f}, batchsize {:.4f}, wd {:.4f}, num-train {:.4f}\n'
+        self.file.write('lr {}, batchsize {}, wd {}, num-train {}\n'
                         .format(self.lr, self.bs, self.wd, self.num_train))
         self.file.flush()
 
