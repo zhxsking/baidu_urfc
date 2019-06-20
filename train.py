@@ -44,6 +44,7 @@ if __name__ == '__main__':
     opt = Option()
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
+    log.write('备注：')
 
     # 初始化保存目录
     if not os.path.exists('checkpoint'):
@@ -89,8 +90,8 @@ if __name__ == '__main__':
 #    net = CNN().to(opt.device)
     net = mSDNet(pretrained=opt.pretrained).to(opt.device)
     loss_func = nn.CrossEntropyLoss().to(opt.device)
-    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
-#    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
+#    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
+    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 动态改变lr
 #    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5) # 动态改变lr
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.3, patience=3, verbose=True)
@@ -156,7 +157,7 @@ if __name__ == '__main__':
         scheduler.step(acc_temp_val)
         
         # 更新最优模型
-        if (epoch+1) > 0 and acc_temp_val >= best_acc:
+        if (epoch+1) > 0 and acc_temp_val > best_acc:
             best_epoch = epoch + 1
             best_acc = acc_temp_val
             best_model = copy.deepcopy(net.state_dict())
@@ -166,7 +167,7 @@ if __name__ == '__main__':
             if early_stop == opt.early_stop_num: break
         
         # 更新最优loss模型
-        if (epoch+1) > 0 and loss_temp_val <= best_loss:
+        if (epoch+1) > 0 and loss_temp_val < best_loss:
             best_epoch_loss = epoch + 1
             best_loss = loss_temp_val
             best_model_loss = copy.deepcopy(net.state_dict())

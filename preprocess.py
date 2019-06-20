@@ -12,6 +12,8 @@ from tqdm import tqdm
 import random
 import matplotlib.pyplot as plt
 from PIL import Image
+import cv2
+from sklearn.ensemble import IsolationForest
 
 from urfc_option import Option
 
@@ -51,6 +53,49 @@ def imgDataClean(dir_img, ratio_b=0.3, ratio_w=0.9):
                 continue
     f.close()
 
+def imgDataClean_iforest(dir_img):
+    '''利用孤立森林去除异常点'''
+    # 读取数据
+    dirs = (os.listdir(dir_img))
+    files = []
+    for dir in dirs:
+        path = join(dir_img, dir)
+        for file in os.listdir(path):
+            files.append(join(path, file))
+    
+    bad_files = list(pd.read_csv("data/bad-files.txt", header=None)[0])
+    
+    good_files = list(set(files)-set(bad_files))
+    
+    files = good_files.copy()
+    clf = IsolationForest(behaviour='new', verbose=1, contamination='auto', n_jobs=-1)
+    
+    all_bad_files = []
+    for i in range(5):
+        imgs = []
+        for file in tqdm(files):
+            img = plt.imread(file)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+            imgs.append(img)
+        imgs = np.array(imgs)
+        x = imgs.reshape(imgs.shape[0], -1)
+        
+        clf.fit(x)
+        y_pred = clf.predict(x)
+        
+        idx = (np.where(y_pred == -1))[0]
+        
+        bad_files = [files[i] for i in idx]
+        all_bad_files = list(set(all_bad_files + bad_files))
+        
+        files = list(set(files)-set(bad_files))
+        
+        txt_name = "data/bad-files-iforest-" + str(i) + ".txt"
+        f = open(txt_name, "w+")
+        for item in all_bad_files:
+            f.write(item)
+        f.close()
+
 def getSampleTxt(dir_img, num_train):
     '''将数据写入txt'''
     print('Get Sample Txt...')
@@ -67,11 +112,11 @@ def getSampleTxt(dir_img, num_train):
         for file in os.listdir(path):
             files.append(join(path, file))
     
-    f = open(r"data/bad-files.txt", "r")
-    bad_files = f.readlines()
-    f.close()
-    
+    bad_files = list(pd.read_csv("data/bad-files.txt", header=None)[0])
+    bad_files_iforest = list(pd.read_csv("data/bad-files-iforest-9.txt", header=None)[0])
+        
     good_files = list(set(files)-set(bad_files))
+#    good_files = list(set(files)-set(bad_files)-set(bad_files_iforest))
         
     f = open("data/val.txt", "w+")
     valid_data = {}
@@ -370,12 +415,13 @@ def testData2npy_simple_fea(dir_img_test, dir_visit_npy_test, data_npy):
 if __name__ == '__main__':
     opt = Option()
     since = time.time() # 记录时间
-    imgDataClean(opt.dir_img)
+#    imgDataClean(opt.dir_img)
+#    imgDataClean_iforest(opt.dir_img)
     
     getSampleTxt(opt.dir_img, opt.num_train)
-    imgs2npy(opt.data_npy, get_ori=False)
+    imgs2npy(opt.data_npy, get_ori=True)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
-    visits2npy(opt.dir_visit_npy, opt.data_npy, get_ori=False)
+    visits2npy(opt.dir_visit_npy, opt.data_npy, get_ori=True)
     
     # 生成测试集数据
 #    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)

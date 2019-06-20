@@ -278,35 +278,4 @@ since = time.time() # 记录时间
 #res = (res - np.min(res)) / (np.max(res) - np.min(res))
 #plt.imshow(res)
 
-#%%
-from sklearn.ensemble import IsolationForest
-opt = Option()
-imgs_train = np.load(join(opt.data_npy, "train-img.npy"))
-visits_train = np.load(join(opt.data_npy, "train-visit.npy"))
-labs_train = np.load(join(opt.data_npy, "train-label.npy"))
-
-x = []
-for i in range(imgs_train.shape[0]):
-    img = imgs_train[i,:]
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    x.append(img)
-x = np.array(x)
-x = x.reshape(x.shape[0], -1)
-
-clf = IsolationForest(behaviour='new', verbose=1, contamination='auto')
-clf.fit(x)
-y_pred = clf.predict(x)
-
-idx = (np.where(y_pred == -1))[0]
-
-f = open(r"data/train.txt", "r")
-train_files = f.readlines()
-f.close()
-
-bad_files = [train_files[i] for i in idx]
-
-f = open("data/bad-files-iforst.txt", "w+")
-for item in bad_files:
-    f.write(item + "\n")
-f.close()
 

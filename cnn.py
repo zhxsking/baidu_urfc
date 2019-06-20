@@ -306,15 +306,23 @@ class mSDNet(nn.Module):
         self.features = list(mdl.children())[:-2]
         self.features.append(nn.AdaptiveAvgPool2d(1))
         self.features = nn.Sequential(*self.features)
-        
         self.features[0].conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, 
                                         padding=3, bias=False)
-        
-        self.fc = nn.Linear(mdl.last_linear.in_features+64, 9)
+        self.fc_img = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(in_features=mdl.last_linear.in_features, out_features=64, bias=True),
+                )
         
         self.visit_model=DPN26()
+        self.visit_model.linear = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(in_features=self.visit_model.linear.in_features, out_features=64, bias=True),
+                )
         
-#        self.cls = nn.Linear(64, 9)
+        self.fc = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(128, 9, bias=True),
+                )
         
         if not(pretrained):
             for m in self.modules():
@@ -338,6 +346,7 @@ class mSDNet(nn.Module):
         x_img = F.relu(features, inplace=True)
         x_img = F.adaptive_avg_pool2d(x_img, (1, 1))
         x_img = x_img.view(features.size(0), -1)
+        x_img = self.fc_img(x_img)
         
         x = torch.cat((x_img, x_vis), dim=1)
         

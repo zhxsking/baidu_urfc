@@ -6,8 +6,8 @@ from os.path import join
 import numpy as np
 from tqdm import tqdm
 
-from preprocess import imgProc
-from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26
+from urfc_utils import Logger, imgProc, aug_batch, aug_test_batch
+from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet
 from urfc_option import Option
 
 
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     opt = Option()
     
     # 加载模型
-    net = mDPN26().to(opt.device)
+    net = mSDNet().to(opt.device)
     state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
     net.load_state_dict(state['net'])
     
