@@ -7,9 +7,11 @@ from os.path import join
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import metrics
+import torchvision.transforms as transforms
+import sys
 
-from preprocess import imgProc
-from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26
+from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch, aug_test_batch
+from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet
 from urfc_option import Option
 
 
@@ -34,11 +36,39 @@ def evalNet(net, loss_func, dataloader_val, device):
     out_lab = []
     with torch.no_grad():
         for cnt, (img, visit, out_gt) in enumerate(dataloader_val, 1):
-            img = img.to(opt.device)
-            visit = visit.to(opt.device)
-            out_gt = out_gt.to(opt.device)
+            img = img.to(device)
+            visit = visit.to(device)
+            out_gt = out_gt.to(device)
             out, _ = net(img, visit)
 
+            loss = loss_func(out, out_gt)
+            _, preds = torch.max(out, 1)
+            loss_temp += loss.item()
+            acc_temp += (float(torch.sum(preds == out_gt.data)) / len(out_gt))
+            out_lab.append(preds.cpu().numpy().flatten().astype(np.uint8))
+    return loss_temp / cnt, acc_temp / cnt, out_lab
+
+def evalNet_TTA(net, loss_func, dataloader_val, device):
+    """用验证集评判网络性能"""
+    net.eval()
+    acc_temp = 0
+    loss_temp = 0
+    out_lab = []
+    with torch.no_grad():
+        for cnt, (img_o, visit, out_gt) in enumerate(dataloader_val, 1):
+            img_h, img_v = aug_test_batch(img_o)
+            
+            img_o = img_o.to(device)
+            img_h = img_h.to(device)
+            img_v = img_v.to(device)
+            visit = visit.to(device)
+            out_gt = out_gt.to(device)
+            
+            out_o, _ = net(img_o, visit)
+            out_h, _ = net(img_h, visit)
+            out_v, _ = net(img_v, visit)
+            out = out_o + out_h + out_v
+            
             loss = loss_func(out, out_gt)
             _, preds = torch.max(out, 1)
             loss_temp += loss.item()
@@ -65,13 +95,15 @@ if __name__ == '__main__':
                                   batch_size=opt.batchsize, num_workers=opt.workers)
     
     # 加载模型
-    net = mDPN26().to(opt.device)
+    print('Loading Model...')
+    net = mSDNet().to(opt.device)
     state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
     net.load_state_dict(state['net'])
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
     # 验证原始数据
-    loss_temp_val_ori, acc_temp_val_ori, out_lab = evalNet(net, loss_func, dataloader_val, opt.device)
+#    loss_temp_val_ori, acc_temp_val_ori, out_lab = evalNet(net, loss_func, dataloader_val, opt.device)
+    loss_temp_val_ori, acc_temp_val_ori, out_lab = evalNet_TTA(net, loss_func, dataloader_val, opt.device)
 
     # 绘制混淆矩阵
     out_lab_np = []

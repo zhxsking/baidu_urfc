@@ -4,6 +4,7 @@ from datetime import datetime
 import numpy as np
 import torch
 from imgaug import augmenters as iaa
+import torchvision.transforms as transforms
 
 from linear_p import linear_p
 
@@ -90,7 +91,7 @@ def aug_img(img):
         img_aug = []
     return img_aug
 
-def aug_test_img(img):
+def aug_val_img(img):
     '''对uint8图像或图像的一个batch（NHWC）进行aug'''
     aug_seq = iaa.Lambda(func_images=func_images)
     
@@ -112,13 +113,32 @@ def aug_batch(batch):
     batch_aug = torch.as_tensor(batch_aug, dtype=torch.float32)
     return batch_aug
 
-def aug_test_batch(batch):
+def aug_val_batch(batch):
     '''对torch的一个batch（NCHW）进行aug'''
     batch = (batch.permute(0,2,3,1).numpy()*255).astype(np.uint8)
-    batch_aug = aug_test_img(batch)
+    batch_aug = aug_val_img(batch)
     batch_aug = (batch_aug / 255.0).astype(np.float32).transpose(0,3,1,2)
     batch_aug = torch.as_tensor(batch_aug, dtype=torch.float32)
     return batch_aug
+
+def aug_test_batch(batch):
+    '''对torch的一个batch（NCHW）进行aug'''
+    transform_h = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.RandomHorizontalFlip(1),
+        transforms.ToTensor(),
+    ])
+    transform_v = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.RandomVerticalFlip(1),
+        transforms.ToTensor(),
+    ])
+    batch_h = batch.clone()
+    batch_v = batch.clone()
+    for i in range(batch.shape[0]):
+        batch_h[i,:] = transform_h(batch_h[i,:])
+        batch_v[i,:] = transform_v(batch_v[i,:])
+    return batch_h, batch_v
 
 class Logger(object):
     def __init__(self, lr=0, bs=0, wd=0, num_train=0):

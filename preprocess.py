@@ -115,8 +115,8 @@ def getSampleTxt(dir_img, num_train):
     bad_files = list(pd.read_csv("data/bad-files.txt", header=None)[0])
     bad_files_iforest = list(pd.read_csv("data/bad-files-iforest-9.txt", header=None)[0])
         
-    good_files = list(set(files)-set(bad_files))
-#    good_files = list(set(files)-set(bad_files)-set(bad_files_iforest))
+#    good_files = list(set(files)-set(bad_files))
+    good_files = list(set(files)-set(bad_files)-set(bad_files_iforest))
         
     f = open("data/val.txt", "w+")
     valid_data = {}
@@ -419,13 +419,13 @@ if __name__ == '__main__':
 #    imgDataClean_iforest(opt.dir_img)
     
     getSampleTxt(opt.dir_img, opt.num_train)
-    imgs2npy(opt.data_npy, get_ori=True)
+#    imgs2npy(opt.data_npy, get_ori=True)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
-    visits2npy(opt.dir_visit_npy, opt.data_npy, get_ori=True)
+#    visits2npy(opt.dir_visit_npy, opt.data_npy, get_ori=True)
     
     # 生成测试集数据
 #    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
-    testData2npy(opt.dir_img_test, opt.dir_visit_npy_test, opt.data_npy)
+#    testData2npy(opt.dir_img_test, opt.dir_visit_npy_test, opt.data_npy)
     
     time_elapsed = time.time() - since # 用时
     print('Complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))

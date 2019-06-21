@@ -16,7 +16,7 @@ from sklearn import metrics
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
-from urfc_utils import Logger, imgProc, aug_batch, aug_test_batch
+from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch
 
     
 def evalNet(net, loss_func, dataloader_val, device):
@@ -26,7 +26,7 @@ def evalNet(net, loss_func, dataloader_val, device):
     loss_temp = 0
     with torch.no_grad():
         for cnt, (img, visit, out_gt) in enumerate(dataloader_val, 1):
-#            img = aug_test_batch(img)
+#            img = aug_val_batch(img)
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
@@ -92,8 +92,8 @@ if __name__ == '__main__':
     loss_func = nn.CrossEntropyLoss().to(opt.device)
 #    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
-#    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 动态改变lr
-#    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5) # 动态改变lr
+#    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 2∗Tmax为周期，在一个周期内先下降，后上升
+#    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5, verbose=True) # 动态改变lr
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.3, patience=3, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
     

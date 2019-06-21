@@ -217,6 +217,7 @@ class mDenseNet(nn.Module):
 class mSENet(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
+#        print(pretrainedmodels.model_names)
         if pretrained:
             mdl= pretrainedmodels.__dict__['se_resnext50_32x4d'](num_classes=1000, pretrained='imagenet')
         else:
@@ -263,16 +264,16 @@ class mPolyNet(nn.Module):
         super().__init__()
 #        print(pretrainedmodels.model_names)
         if pretrained:
-            mdl= pretrainedmodels.__dict__['polynet'](num_classes=1000, pretrained='imagenet')
+            mdl= pretrainedmodels.__dict__['pnasnet5large'](num_classes=1000, pretrained='imagenet')
         else:
-            mdl= pretrainedmodels.__dict__['polynet'](num_classes=1000, pretrained=None)
+            mdl= pretrainedmodels.__dict__['pnasnet5large'](num_classes=1000, pretrained=None)
         
         self.features = list(mdl.children())[:-3]
         self.features.append(nn.AdaptiveAvgPool2d(1))
-        self.features.append(nn.Dropout(p=0.2))
+        self.features.append(nn.Dropout(p=0.5))
         self.features = nn.Sequential(*self.features)
         
-        self.features[0].conv1[0].conv = nn.Conv2d(4, 32, kernel_size=(3, 3), stride=(2, 2), bias=False)
+        self.features[0].conv = nn.Conv2d(4, 96, kernel_size=(3, 3), stride=(2, 2), bias=False)
         
         self.fc = nn.Linear(mdl.last_linear.in_features, 9)
         
@@ -296,6 +297,7 @@ class mPolyNet(nn.Module):
         return out, out_fea
 
 class mSDNet(nn.Module):
+    '''sdnet'''
     def __init__(self, pretrained=False):
         super().__init__()
         if pretrained:
@@ -372,6 +374,9 @@ class mDPN26(nn.Module):
 
 
 if __name__ == '__main__':
+    '''
+    ['fbresnet152', 'bninception', 'resnext101_32x4d', 'resnext101_64x4d', 'inceptionv4', 'inceptionresnetv2', 'alexnet', 'densenet121', 'densenet169', 'densenet201', 'densenet161', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'inceptionv3', 'squeezenet1_0', 'squeezenet1_1', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19', 'nasnetamobile', 'nasnetalarge', 'dpn68', 'dpn68b', 'dpn92', 'dpn98', 'dpn131', 'dpn107', 'xception', 'senet154', 'se_resnet50', 'se_resnet101', 'se_resnet152', 'se_resnext50_32x4d', 'se_resnext101_32x4d', 'cafferesnet101', 'pnasnet5large', 'polynet']
+    '''
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
@@ -381,7 +386,7 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = mSDNet(pretrained=False).to(device)
+    net = mPolyNet(pretrained=False).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
