@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import metrics
  
-from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet
+from cnn import mResNet, mDenseNet, mSENet, mSDNet, mPNASNet, mNASNet, mPOLYNet, mXNet
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
 from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch
