@@ -10,7 +10,7 @@ from sklearn import metrics
 import torchvision.transforms as transforms
 import sys
 
-from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch, aug_test_batch
+from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch, get_tta_batch
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet
 from urfc_option import Option
 
@@ -56,7 +56,7 @@ def evalNet_TTA(net, loss_func, dataloader_val, device):
     out_lab = []
     with torch.no_grad():
         for cnt, (img_o, visit, out_gt) in enumerate(dataloader_val, 1):
-            img_h, img_v = aug_test_batch(img_o)
+            img_h, img_v = get_tta_batch(img_o)
             
             img_o = img_o.to(device)
             img_h = img_h.to(device)
@@ -67,7 +67,7 @@ def evalNet_TTA(net, loss_func, dataloader_val, device):
             out_o, _ = net(img_o, visit)
             out_h, _ = net(img_h, visit)
             out_v, _ = net(img_v, visit)
-            out = out_o + out_h + out_v
+            out = out_o * 2 + out_h + out_v
             
             loss = loss_func(out, out_gt)
             _, preds = torch.max(out, 1)

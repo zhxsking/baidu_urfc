@@ -121,7 +121,7 @@ def aug_val_batch(batch):
     batch_aug = torch.as_tensor(batch_aug, dtype=torch.float32)
     return batch_aug
 
-def aug_test_batch(batch):
+def get_tta_batch(batch):
     '''对torch的一个batch（NCHW）进行aug'''
     transform_h = transforms.Compose([
         transforms.ToPILImage(),

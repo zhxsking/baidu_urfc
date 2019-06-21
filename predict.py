@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 import torchvision.transforms as transforms
 
-from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch
+from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch, get_tta_batch
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet
 from urfc_option import Option
 
@@ -37,16 +37,17 @@ def predict_TTA(net, dataloader_test, device):
     out_lab = []
     with torch.no_grad():
         for (img_o, visit) in tqdm(dataloader_test):
-            img_o = img_o.to(device)
-            visit = visit.to(device)
+            img_h, img_v = get_tta_batch(img_o)
             
-            img_h = transforms.RandomHorizontalFlip(1)(img_o)
-            img_v = transforms.RandomVerticalFlip(1)(img_o)
+            img_o = img_o.to(device)
+            img_h = img_h.to(device)
+            img_v = img_v.to(device)
+            visit = visit.to(device)
             
             out_o, _ = net(img_o, visit)
             out_h, _ = net(img_h, visit)
             out_v, _ = net(img_v, visit)
-            out = out_o + out_h + out_v
+            out = out_o * 2 + out_h + out_v
 
             _, preds = torch.max(out, 1)
             out_lab.append(preds.cpu().numpy().flatten().astype(np.uint8) + 1)
@@ -80,8 +81,8 @@ if __name__ == '__main__':
     dataloader_test = DataLoader(dataset=TensorDataset(imgs_test, visits_test),
                                 batch_size=opt.batchsize, num_workers=opt.workers)
     
-    out_lab_np = predict(net, dataloader_test, opt.device)
-#    out_lab_np = predict_TTA(net, dataloader_test, opt.device)
+#    out_lab_np = predict(net, dataloader_test, opt.device)
+    out_lab_np = predict_TTA(net, dataloader_test, opt.device)
     
     # 输出预测文件
     f = open(r"data/out-label.txt", "w+")
