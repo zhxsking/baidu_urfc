@@ -4,3 +4,7 @@
 *.jpg
 *.enp
 *.pkl
+*.tmp
+catboost_info/catboost_training.json
+*.tfevents
+*.tsv
