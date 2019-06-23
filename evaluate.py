@@ -219,8 +219,8 @@ if __name__ == '__main__':
 #    labs_out_np = np.array(labs_out_np)
     
     # 验证原始数据
-#    loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, net)
-    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, net)
+    loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, net)
+#    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, net)
 
     # 绘制混淆矩阵, 计算acc
     cm = metrics.confusion_matrix(labs_ori_np, labs_out_np)

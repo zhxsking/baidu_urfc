@@ -432,7 +432,7 @@ if __name__ == '__main__':
 #    imgDataClean(opt.dir_img)
 #    imgDataClean_iforest(opt.dir_img)
     
-    getSampleTxt(opt.dir_img, opt.num_train, val_balance=False)
+    getSampleTxt(opt.dir_img, opt.num_train, val_balance=True)
 #    imgs2npy(opt.data_npy, get_ori=True)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
 #    visits2npy(opt.dir_visit_npy, opt.data_npy, get_ori=True)

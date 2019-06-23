@@ -373,7 +373,7 @@ class mSDNet101(nn.Module):
                                         padding=3, bias=False)
         self.fc_img = nn.Sequential(
                 nn.Dropout(0.5),
-                nn.Linear(in_features=mdl.last_linear.in_features, out_features=64, bias=True),
+                nn.Linear(in_features=mdl.last_linear.in_features, out_features=256, bias=True),
                 )
         
         self.visit_model=DPN26()
@@ -384,7 +384,7 @@ class mSDNet101(nn.Module):
         
         self.fc = nn.Sequential(
                 nn.Dropout(0.5),
-                nn.Linear(128, 9, bias=True),
+                nn.Linear(320, 9, bias=True),
                 )
         
         if not(pretrained):
@@ -400,10 +400,10 @@ class mSDNet101(nn.Module):
     def forward(self, x_img, x_vis):
         x_vis = self.visit_model(x_vis)
         
-        features = self.features(x_img)
-        x_img = F.relu(features, inplace=True)
-        x_img = F.adaptive_avg_pool2d(x_img, (1, 1))
-        x_img = x_img.view(features.size(0), -1)
+        x_img = self.features(x_img)
+#        x_img = F.relu(features, inplace=True)
+#        x_img = F.adaptive_avg_pool2d(x_img, (1, 1))
+        x_img = x_img.view(x_img.size(0), -1)
         x_img = self.fc_img(x_img)
         
         x = torch.cat((x_img, x_vis), dim=1)
@@ -650,13 +650,13 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = MMNet(pretrained=False).to(device)
+    net = mSDNet101(pretrained=False).to(device)
 #    net = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
     
-    bs = 64
+    bs = 1
     test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
     test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
 
