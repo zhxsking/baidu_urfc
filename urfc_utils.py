@@ -47,38 +47,52 @@ def aug_img(img):
     '''对uint8图像或图像的一个batch（NHWC）进行aug'''
     sometimes = lambda aug: iaa.Sometimes(0.5, aug)
     aug_seq = iaa.Sequential([
-        iaa.Lambda(func_images=func_images),
         iaa.Fliplr(0.5),
         iaa.Flipud(0.5),
-        sometimes(iaa.Affine(
-            scale={"x": (0.9, 1.1), "y": (0.9, 1.1)},
-            translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-            rotate=(-15, 15),
-            shear=(-16, 16),
-            order=[0, 1],
-        )),
-        iaa.SomeOf((0, 5), [
-            iaa.OneOf([
-                iaa.GaussianBlur((0, 2)),
-                iaa.AverageBlur(k=(2, 5)),
-                iaa.MedianBlur(k=(3, 5)),
+        iaa.SomeOf((0,4),[
+            iaa.Affine(rotate=90),
+            iaa.Affine(rotate=180),
+            iaa.Affine(rotate=270),
+            iaa.Affine(shear=(-16, 16)),
+        ]),
+        iaa.OneOf([
+                iaa.GaussianBlur((0, 3.0)), # blur images with a sigma between 0 and 3.0
+                iaa.AverageBlur(k=(2, 7)), # blur image using local means with kernel sizes between 2 and 7
+                iaa.MedianBlur(k=(3, 11)), # blur image using local medians with kernel sizes between 2 and 7
             ]),
-            iaa.Sharpen(alpha=(0, 0.5), lightness=(0.8, 1.2)),
-            sometimes(iaa.OneOf([
-                iaa.EdgeDetect(alpha=(0, 0.7)),
-                iaa.DirectedEdgeDetect(alpha=(0, 0.7), direction=(0.0, 1.0)),
-            ])),
-            iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
-            iaa.Dropout((0.01, 0.1), per_channel=0.5),
-            iaa.OneOf([
-                iaa.Fog(),
-                iaa.Clouds(),
-            ]),
-#            iaa.Invert(0.05, per_channel=True),
-            iaa.Add((-10, 10), per_channel=0.5),
-            iaa.Multiply((0.7, 1.3), per_channel=0.5),
-#            iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
-        ], random_order=True)
+        
+#        iaa.Lambda(func_images=func_images),
+#        iaa.Fliplr(0.5),
+#        iaa.Flipud(0.5),
+#        sometimes(iaa.Affine(
+#            scale={"x": (0.9, 1.1), "y": (0.9, 1.1)},
+#            translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
+#            rotate=(-15, 15),
+#            shear=(-16, 16),
+#            order=[0, 1],
+#        )),
+#        iaa.SomeOf((0, 5), [
+#            iaa.OneOf([
+#                iaa.GaussianBlur((0, 2)),
+#                iaa.AverageBlur(k=(2, 5)),
+#                iaa.MedianBlur(k=(3, 5)),
+#            ]),
+#            iaa.Sharpen(alpha=(0, 0.5), lightness=(0.8, 1.2)),
+#            sometimes(iaa.OneOf([
+#                iaa.EdgeDetect(alpha=(0, 0.7)),
+#                iaa.DirectedEdgeDetect(alpha=(0, 0.7), direction=(0.0, 1.0)),
+#            ])),
+#            iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
+#            iaa.Dropout((0.01, 0.1), per_channel=0.5),
+#            iaa.OneOf([
+#                iaa.Fog(),
+#                iaa.Clouds(),
+#            ]),
+##            iaa.Invert(0.05, per_channel=True),
+#            iaa.Add((-10, 10), per_channel=0.5),
+#            iaa.Multiply((0.7, 1.3), per_channel=0.5),
+##            iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
+#        ], random_order=True)
     ], random_order=True)
     
     if (img.ndim == 3):
@@ -140,7 +154,22 @@ def get_tta_batch(batch):
         batch_v[i,:] = transform_v(batch_v[i,:])
     return batch_h, batch_v
 
+class Record(object):
+    '''记录loss、acc等信息'''
+    def __init__(self):
+        self.val = 0.0
+        self.avg = 0.0
+        self.sum = 0.0
+        self.cnt = 0.0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.cnt += n
+        self.avg = self.sum / self.cnt
+
 class Logger(object):
+    '''保存日志信息'''
     def __init__(self, lr=0, bs=0, wd=0, num_train=0):
         self.lr = lr
         self.bs = bs

@@ -10,8 +10,8 @@ class Option():
     def __init__(self):
         self.epochs = 20
         self.lr = 1e-3
-        self.batchsize = 128 # 512 1024
-        self.weight_decay = 0.01
+        self.batchsize = 64
+        self.weight_decay = 1e-4
         self.early_stop_num = 150 # acc在多少个epoch下都不提升就提前结束训练
         self.workers = 0 # 4 多进程，可能会卡程序
         self.pretrained = True
@@ -27,9 +27,9 @@ class Option():
         self.disk = "E"
         self.dir_img = self.disk + r":\pic\URFC-baidu\train_image"
         self.dir_img_test = self.disk + r":\pic\URFC-baidu\test_image"
-        self.data_npy = self.disk + r":\pic\URFC-baidu\data_npy_" + str(self.num_train)
         self.dir_visit = self.disk + r":\pic\URFC-baidu\train_visit"
         self.dir_visit_test = self.disk + r":\pic\URFC-baidu\test_visit"
+        self.data_npy = self.disk + r":\pic\URFC-baidu\data_npy_" + str(self.num_train)
         self.dir_visit_npy = self.dir_visit + self.dir_npy_suffix
         self.dir_visit_npy_test = self.dir_visit_test + self.dir_npy_suffix
         

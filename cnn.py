@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torchvision import models
 import pretrainedmodels
 
-from multimodal import DPN26
+from multimodal import DPN26, MultiModalNet, FCViewer
 
 
 class CNN(nn.Module):
@@ -300,7 +300,7 @@ class mTESTNet(nn.Module):
 # 
 #        return out, out_fea
 
-class mSDNet(nn.Module):
+class mSDNet50(nn.Module):
     '''sdnet'''
     def __init__(self, pretrained=False):
         super().__init__()
@@ -308,6 +308,63 @@ class mSDNet(nn.Module):
             mdl= pretrainedmodels.__dict__['se_resnext50_32x4d'](num_classes=1000, pretrained='imagenet')
         else:
             mdl= pretrainedmodels.__dict__['se_resnext50_32x4d'](num_classes=1000, pretrained=None)
+        
+        self.features = list(mdl.children())[:-2]
+        self.features.append(nn.AdaptiveAvgPool2d(1))
+        self.features = nn.Sequential(*self.features)
+        self.features[0].conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, 
+                                        padding=3, bias=False)
+        self.fc_img = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(in_features=mdl.last_linear.in_features, out_features=64, bias=True),
+                )
+        
+        self.visit_model=DPN26()
+        self.visit_model.linear = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(in_features=self.visit_model.linear.in_features, out_features=64, bias=True),
+                )
+        
+        self.fc = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(128, 9, bias=True),
+                )
+        
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+        
+    def forward(self, x_img, x_vis):
+        x_vis = self.visit_model(x_vis)
+        
+        features = self.features(x_img)
+        x_img = F.relu(features, inplace=True)
+        x_img = F.adaptive_avg_pool2d(x_img, (1, 1))
+        x_img = x_img.view(features.size(0), -1)
+        x_img = self.fc_img(x_img)
+        
+        x = torch.cat((x_img, x_vis), dim=1)
+        
+        out_fea = x
+        
+        out = self.fc(x)
+ 
+        return out, out_fea
+
+class mSDNet101(nn.Module):
+    '''sdnet'''
+    def __init__(self, pretrained=False):
+        super().__init__()
+        if pretrained:
+            mdl= pretrainedmodels.__dict__['se_resnext101_32x4d'](num_classes=1000, pretrained='imagenet')
+        else:
+            mdl= pretrainedmodels.__dict__['se_resnext101_32x4d'](num_classes=1000, pretrained=None)
         
         self.features = list(mdl.children())[:-2]
         self.features.append(nn.AdaptiveAvgPool2d(1))
@@ -540,6 +597,36 @@ class mPNASNet(nn.Module):
         out = self.fc(x)
         return out, out_fea
 
+class MMNet(nn.Module):
+    def __init__(self, pretrained=True):
+        super().__init__()
+        if pretrained:
+            img_model = pretrainedmodels.__dict__['se_resnext101_32x4d'](num_classes=1000, pretrained='imagenet') #seresnext101
+        else:
+            img_model = pretrainedmodels.__dict__['se_resnext101_32x4d'](num_classes=1000, pretrained=None)
+       
+        self.visit_model=DPN26()
+        
+        self.img_encoder = list(img_model.children())[:-2]
+        self.img_encoder.append(nn.AdaptiveAvgPool2d(1))
+        self.img_encoder = nn.Sequential(*self.img_encoder)
+
+        self.img_fc = nn.Sequential(FCViewer(),
+                                nn.Dropout(0.5),
+                                nn.Linear(img_model.last_linear.in_features, 256))
+
+        self.cls = nn.Linear(320,9) 
+
+    def forward(self, x_img,x_vis):
+        x_img = self.img_encoder(x_img)
+        x_img = self.img_fc(x_img)
+
+        x_vis=self.visit_model(x_vis)
+        x_cat = torch.cat((x_img,x_vis),1)
+        out_fea = x_cat
+        x_cat = self.cls(x_cat)
+        return x_cat, out_fea
+
 class mDPN26(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
@@ -563,16 +650,17 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = mXNet(pretrained=False).to(device)
+    net = MMNet(pretrained=False).to(device)
+#    net = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
     
-    bs = 1
+    bs = 64
     test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
     test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
 
     out_x, out_fea = net(test_x1, test_x2)
-    print(out_x)
+    print(out_x.shape)
     print(out_fea.shape)
 

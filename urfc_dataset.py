@@ -13,10 +13,11 @@ from urfc_option import Option
 
 
 class UrfcDataset(Dataset):
-    def __init__(self, dir_img, dir_visit, path_txt):
+    def __init__(self, dir_img, dir_visit, path_txt, aug=True):
         super().__init__()
         self.dir_img = dir_img
         self.dir_visit = dir_visit
+        self.aug = aug
         
         data_list = list(pd.read_csv(path_txt, header=None)[0])
         self.data_names = [a.split('\\')[-1] for a in data_list]
@@ -27,7 +28,8 @@ class UrfcDataset(Dataset):
         img = plt.imread(join(self.dir_img, label_str, self.data_names[index] + ".jpg"))
         visit = np.load(join(self.dir_visit, self.data_names[index] + ".npy"))
         
-        img = self.augumentor(img)
+        if self.aug:
+            img = self.augumentor(img)
         
 #        def subMean(x):
 #            '''每张图减去均值，匀光'''
@@ -82,7 +84,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     
     opt = Option()
-    dataset = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt")
+    dataset = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
     dataloader = DataLoader(dataset=dataset, batch_size=3, shuffle=True)
     
     for cnt, (img, visit, lab) in enumerate(dataloader, 1):

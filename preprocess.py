@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import cv2
 from sklearn.ensemble import IsolationForest
+from sklearn.model_selection import train_test_split
 
 from urfc_option import Option
 
@@ -96,7 +97,7 @@ def imgDataClean_iforest(dir_img):
             f.write(item)
         f.close()
 
-def getSampleTxt(dir_img, num_train):
+def getSampleTxt(dir_img, num_train, val_balance=False):
     '''将数据写入txt'''
     print('Get Sample Txt...')
     
@@ -117,18 +118,31 @@ def getSampleTxt(dir_img, num_train):
         
 #    good_files = list(set(files)-set(bad_files))
     good_files = list(set(files)-set(bad_files)-set(bad_files_iforest))
-        
-    f = open("data/val.txt", "w+")
-    valid_data = {}
-    train_data = {}
-    for i in range(1, 10):
-        tmp = [a for a in good_files if int(a.split('\\')[-2]) == i]
-        valid_data[i] = random.sample(tmp, 200)
-        train_data[i] = list(set(tmp) - set(valid_data[i]))
-        for item in valid_data[i]:
-            f.write(item[0:-4] + "\n")
-    f.close()
     
+    if val_balance:
+        f = open("data/val.txt", "w+")
+        valid_data = {}
+        train_data = {}
+        for i in range(1, 10):
+            tmp = [a for a in good_files if int(a.split('\\')[-2]) == i]
+            valid_data[i] = random.sample(tmp, 200)
+            train_data[i] = list(set(tmp) - set(valid_data[i]))
+            for item in valid_data[i]:
+                f.write(item[0:-4] + "\n")
+        f.close()
+    else:
+        train_files, val_files = train_test_split(good_files, test_size=0.1, random_state=47)
+        
+        f = open("data/val.txt", "w+")
+        for item in val_files:
+            f.write(item[0:-4]+ "\n")
+        f.close()
+        
+        train_data = {}
+        for i in range(1, 10):
+            tmp = [a for a in train_files if int(a.split('\\')[-2]) == i]
+            train_data[i] = tmp
+            
     f = open("data/train.txt", "w+")
     for i in range(1, 10):
         for item in train_data[i]:
@@ -418,7 +432,7 @@ if __name__ == '__main__':
 #    imgDataClean(opt.dir_img)
 #    imgDataClean_iforest(opt.dir_img)
     
-    getSampleTxt(opt.dir_img, opt.num_train)
+    getSampleTxt(opt.dir_img, opt.num_train, val_balance=False)
 #    imgs2npy(opt.data_npy, get_ori=True)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
 #    visits2npy(opt.dir_visit_npy, opt.data_npy, get_ori=True)

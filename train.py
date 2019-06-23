@@ -13,17 +13,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import metrics
  
-from cnn import mResNet, mDenseNet, mSENet, mSDNet, mPNASNet, mNASNet, mPOLYNet, mXNet
+from cnn import mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet101, mPNASNet, mNASNet, mPOLYNet, mXNet, MMNet
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
-from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch
+from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch
 
     
 def evalNet(net, loss_func, dataloader_val, device):
     """用验证集评判网络性能"""
     net.eval()
-    acc_temp = 0
-    loss_temp = 0
+    acc_temp = Record()
+    loss_temp = Record()
     with torch.no_grad():
         for cnt, (img, visit, out_gt) in enumerate(dataloader_val, 1):
 #            img = aug_val_batch(img)
@@ -34,9 +34,9 @@ def evalNet(net, loss_func, dataloader_val, device):
 
             loss = loss_func(out, out_gt)
             _, preds = torch.max(out, 1)
-            loss_temp += loss.item()
-            acc_temp += (float(torch.sum(preds == out_gt.data)) / len(out_gt))
-    return loss_temp / cnt, acc_temp / cnt
+            loss_temp.update(loss.item(), img.shape[0])
+            acc_temp.update((float(torch.sum(preds == out_gt.data)) / len(out_gt)), len(out_gt))
+    return loss_temp.avg, acc_temp.avg
 
 
 if __name__ == '__main__':
@@ -79,16 +79,16 @@ if __name__ == '__main__':
     dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
                                   batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
     
-#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt")
+#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
 #    dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
 #                            shuffle=True, num_workers=opt.workers)   
-#    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt")
+#    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
 #    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
 #                                shuffle=False, num_workers=opt.workers)
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
-    net = mSDNet(pretrained=opt.pretrained).to(opt.device)
+    net = mSDNet101(pretrained=opt.pretrained).to(opt.device)
     loss_func = nn.CrossEntropyLoss().to(opt.device)
 #    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
@@ -116,15 +116,18 @@ if __name__ == '__main__':
     best_epoch_loss = 1
     best_model_loss = copy.deepcopy(net.state_dict())
     
+    losses = Record()
+    accs = Record()
+    
     # 训练
     print('Start Training...')
     for epoch in range(opt.epochs):
-        loss_temp_train = 0.0
-        acc_temp_train = 0.0
+        loss_temp_train = Record()
+        acc_temp_train = Record()
         net.train()
 #        scheduler.step(epoch)
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
-#            img = aug_batch(img)
+            img = aug_batch(img)
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
@@ -138,16 +141,14 @@ if __name__ == '__main__':
             optimizer.step()
             
             _, preds = torch.max(out, 1)
-            loss_temp_train += loss.item()
+            loss_temp_train.update(loss.item(), img.shape[0])
             acc_tmp = (float(torch.sum(preds == out_gt.data)) / len(out_gt))
-            acc_temp_train += acc_tmp
+            acc_temp_train.update(acc_tmp, len(out_gt))
             
             print('\rbatch {}/{} temporary loss: {:.4f} acc: {:.4f}'
                   .format(cnt, len(dataloader_train), loss.item(), acc_tmp), end='\r')
-        loss_temp_train /= cnt
-        acc_temp_train /= cnt
-        loss_list_train.append(loss_temp_train)
-        acc_list_train.append(acc_temp_train)
+        loss_list_train.append(loss_temp_train.avg)
+        acc_list_train.append(acc_temp_train.avg)
         
         # 验证
         loss_temp_val, acc_temp_val = evalNet(net, loss_func, dataloader_val, opt.device)
@@ -178,8 +179,8 @@ if __name__ == '__main__':
         
         time_elapsed = time.time() - since
         msg = ('\repoch {}/{}, train val loss {:.4f} {:.4f}, acc {:.4f} {:.4f}, best {:.4f} in epoch {}, time {:.0f}m {:.0f}s'
-              .format(epoch+1, opt.epochs, loss_temp_train, loss_temp_val, 
-                      acc_temp_train, acc_temp_val,
+              .format(epoch+1, opt.epochs, loss_temp_train.avg, loss_temp_val, 
+                      acc_temp_train.avg, acc_temp_val,
                       best_acc, best_epoch,
                       time_elapsed // 60, time_elapsed % 60))
         print(msg)
