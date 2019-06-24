@@ -99,7 +99,7 @@ def evalNet_TTA(loss_func, dataloader_val, device, *nets):
                     else:
                         out_tta = out_tta + out_tta_tmp
                 
-                out_tmp = out_o * i + out_tta
+                out_tmp = out_o * (i+1) + out_tta
 
                 if (cnt==0):
                     out = out_tmp

@@ -8,3 +8,5 @@
 catboost_info/catboost_training.json
 *.tfevents
 *.tsv
+data/train.csv-32911
+data/train.csv

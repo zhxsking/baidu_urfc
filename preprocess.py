@@ -97,6 +97,14 @@ def imgDataClean_iforest(dir_img):
             f.write(item)
         f.close()
 
+def fun():
+    data_list = list(pd.read_csv("data/train.txt", header=None)[0])
+    f = open("data/train1111.txt", "w+")
+    for item in data_list:
+        f.write(item.split('\\')[-1] + "," + str(int(item.split('\\')[-2])-1) + "\n")
+    f.close()
+    
+
 def getSampleTxt(dir_img, num_train, val_balance=False):
     '''将数据写入txt'''
     print('Get Sample Txt...')
@@ -137,7 +145,7 @@ def getSampleTxt(dir_img, num_train, val_balance=False):
         
         f = open("data/val.txt", "w+")
         for item in val_files:
-            f.write(item[0:-4]+ "\n")
+            f.write(item[0:-4] + "\n")
         f.close()
         
         train_data = {}
@@ -148,7 +156,7 @@ def getSampleTxt(dir_img, num_train, val_balance=False):
     f = open("data/train.txt", "w+")
     for i in range(1, 10):
         for item in train_data[i]:
-            f.write(item[0:-4]+ "\n")
+            f.write(item[0:-4] + "\n")
     f.close()
     
     train_data_over = {}
@@ -431,6 +439,7 @@ def testData2npy_simple_fea(dir_img_test, dir_visit_npy_test, data_npy):
 if __name__ == '__main__':
     opt = Option()
     since = time.time() # 记录时间
+    dir_img = opt.dir_img
 #    imgDataClean(opt.dir_img)
 #    imgDataClean_iforest(opt.dir_img)
     
