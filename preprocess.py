@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # 数据预处理，参考了https://github.com/czczup/UrbanRegionFunctionClassification
 import numpy as np
+import random
 import pandas as pd
 import os
 from os.path import join
@@ -9,7 +10,6 @@ import stat
 import datetime
 import time
 from tqdm import tqdm
-import random
 import matplotlib.pyplot as plt
 from PIL import Image
 import cv2
@@ -118,6 +118,8 @@ def getSampleTxt(dir_img, num_train, val_balance=False):
         
 #    good_files = list(set(files)-set(bad_files))
     good_files = list(set(files)-set(bad_files)-set(bad_files_iforest))
+    
+    good_files = sorted(good_files)
     
     if val_balance:
         f = open("data/val.txt", "w+")

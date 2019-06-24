@@ -123,44 +123,50 @@ if __name__ == '__main__':
     
     # 加载数据
     print('Loading Data...')
-#    imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
-#    visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
-#    labs_val = np.load(join(opt.data_npy, "val-label.npy"))
-#    
-#    imgs_val = imgProc(imgs_val)
-#    visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
-#    labs_val = torch.LongTensor(labs_val) - 1
-#    
-#    dataset_val = TensorDataset(imgs_val, visits_val, labs_val)
-#    dataloader_val = DataLoader(dataset=dataset_val, shuffle=False, 
-#                                batch_size=opt.batchsize, num_workers=opt.workers)
+    imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
+    visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
+    labs_val = np.load(join(opt.data_npy, "val-label.npy"))
     
-    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
-    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
-                                shuffle=False, num_workers=opt.workers)
+    imgs_val = imgProc(imgs_val)
+    visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
+    labs_val = torch.LongTensor(labs_val) - 1
+    
+    dataset_val = TensorDataset(imgs_val, visits_val, labs_val)
+    dataloader_val = DataLoader(dataset=dataset_val, shuffle=False, 
+                                batch_size=opt.batchsize, num_workers=opt.workers)
+    
+#    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
+#    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
+#                                shuffle=False, num_workers=opt.workers)
     
     # 加载模型
     print('Loading Model...')
     net = mSDNet50().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-50.pkl", map_location=opt.device) # 0.7428
+    state = torch.load(r"checkpoint\best-cnn-sdnet-50.pkl", map_location=opt.device) # 0.6139 实测
     net.load_state_dict(state['net'])
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
-#    net1 = mPNASNet().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-pnasnet.pkl", map_location=opt.device) # 0.7367
-#    net1.load_state_dict(state['net'])
-#    
-#    net2 = mSDNet101().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 0.7039
-#    net2.load_state_dict(state['net'])
-#    
-#    net3 = MMNet().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-mmnet.pkl", map_location=opt.device) # 0.8478
-#    net3.load_state_dict(state['net'])
+    net1 = mPNASNet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-pnasnet.pkl", map_location=opt.device) # 0.59 实测0.6077
+    net1.load_state_dict(state['net'])
+    
+    net2 = mSDNet101().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 0.6178 实测0.6526
+    net2.load_state_dict(state['net'])
+    
+    net3 = MMNet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-mmnet.pkl", map_location=opt.device) # 0.6200 实测0.6531
+    net3.load_state_dict(state['net'])
     
 #    net3 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
 #    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device)
 #    net3.load_state_dict(state['state_dict'])
+    
+    #%% 验证原始数据
+    nets = [net]
+#    nets = [net, net2, net3]
+    loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, *nets)
+#    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, *nets)
     
     #%%
 #    net.eval()
@@ -217,10 +223,6 @@ if __name__ == '__main__':
 #            labs_out_np.append(labs_out[j][i])            
 #    labs_ori_np = np.array(labs_ori_np)
 #    labs_out_np = np.array(labs_out_np)
-    
-    # 验证原始数据
-    loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, net)
-#    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, net)
 
     # 绘制混淆矩阵, 计算acc
     cm = metrics.confusion_matrix(labs_ori_np, labs_out_np)

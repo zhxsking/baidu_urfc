@@ -14,30 +14,37 @@ from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch, get_tta_batch
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet50, mSDNet101, mPNASNet, MMNet
 from urfc_option import Option
 
-def predict(net, dataloader_test, device):
-    """用验证集评判网络性能"""
-    net.eval()
-    out_lab = []
+def predict(dataloader_test, device, *nets):
+    """预测输出"""
+    sm = nn.Softmax(dim=1)
+    labs_out = []
     with torch.no_grad():
         for (img, visit) in tqdm(dataloader_test):
             img = img.to(device)
             visit = visit.to(device)
-            out, _ = net(img, visit)
-            _, preds = torch.max(out, 1)
-            out_lab.append(preds.cpu().numpy().flatten().astype(np.uint8) + 1)
-    
-    out_lab_np = []
-    for j in range(len(out_lab)):
-        for i in range(len(out_lab[j])):
-            out_lab_np.append(out_lab[j][i])
-    out_lab_np = np.array(out_lab_np)
-    
-    return out_lab_np
+            
+            for cnt, net in enumerate(nets):
+                net.eval()
+                out_tmp, _ = net(img, visit)
 
-def predict_TTA(net, dataloader_test, device):
-    """用验证集评判网络性能"""
-    net.eval()
-    out_lab = []
+                if (cnt==0):
+                    out = sm(out_tmp)
+                else:
+                    out = out + sm(out_tmp)
+            
+            _, preds = torch.max(out, 1)
+            labs_out.append(preds.cpu().numpy().flatten().astype(np.uint8) + 1)
+    labs_out_np = []
+    for j in range(len(labs_out)):
+        for i in range(len(labs_out[j])):
+            labs_out_np.append(labs_out[j][i])            
+    labs_out_np = np.array(labs_out_np)
+    return labs_out_np
+
+def predict_TTA(dataloader_test, device, *nets):
+    """预测输出，TTA"""
+    sm = nn.Softmax(dim=1)
+    labs_out = []
     with torch.no_grad():
         for (img_o, visit) in tqdm(dataloader_test):
             img_h, img_v = get_tta_batch(img_o)
@@ -47,21 +54,26 @@ def predict_TTA(net, dataloader_test, device):
             img_v = img_v.to(device)
             visit = visit.to(device)
             
-            out_o, _ = net(img_o, visit)
-            out_h, _ = net(img_h, visit)
-            out_v, _ = net(img_v, visit)
-            out = out_o * 2 + out_h + out_v
+            for cnt, net in enumerate(nets):
+                net.eval()
+                out_o, _ = net(img_o, visit)
+                out_h, _ = net(img_h, visit)
+                out_v, _ = net(img_v, visit)
+                out_tmp = sm(out_o) * 2 + sm(out_h) + sm(out_v)
 
+                if (cnt==0):
+                    out = sm(out_tmp)
+                else:
+                    out = out + sm(out_tmp)
+            
             _, preds = torch.max(out, 1)
-            out_lab.append(preds.cpu().numpy().flatten().astype(np.uint8) + 1)
-    
-    out_lab_np = []
-    for j in range(len(out_lab)):
-        for i in range(len(out_lab[j])):
-            out_lab_np.append(out_lab[j][i])
-    out_lab_np = np.array(out_lab_np)
-    
-    return out_lab_np
+            labs_out.append(preds.cpu().numpy().flatten().astype(np.uint8) + 1)
+    labs_out_np = []
+    for j in range(len(labs_out)):
+        for i in range(len(labs_out[j])):
+            labs_out_np.append(labs_out[j][i])            
+    labs_out_np = np.array(labs_out_np)
+    return labs_out_np
     
 
 if __name__ == '__main__':
@@ -101,71 +113,12 @@ if __name__ == '__main__':
                                 batch_size=opt.batchsize, num_workers=opt.workers)
     
     device = opt.device
-    net.eval()
-    net1.eval()
-    net2.eval()
-    net3.eval()
     
-    sm = nn.Softmax()
-    
-    out_lab = []
-    with torch.no_grad():
-        for (img_o, visit) in tqdm(dataloader_test):
-            img_h, img_v = get_tta_batch(img_o)
-            
-            img_o = img_o.to(device)
-            img_h = img_h.to(device)
-            img_v = img_v.to(device)
-            visit = visit.to(device)
-            
-            out_o, _ = net(img_o, visit)
-            out_h, _ = net(img_h, visit)
-            out_v, _ = net(img_v, visit)
-            
-            out_o1, _ = net1(img_o, visit)
-            out_h1, _ = net1(img_h, visit)
-            out_v1, _ = net1(img_v, visit)
-            
-            out_o2, _ = net2(img_o, visit)
-            out_h2, _ = net2(img_h, visit)
-            out_v2, _ = net2(img_v, visit)
-            
-            out_o3, _ = net3(img_o, visit)
-            out_h3, _ = net3(img_h, visit)
-            out_v3, _ = net3(img_v, visit)
-            
-#            img_o_ = img_o.clone()
-#            img_o_[:,0,:,:] = img_o[:,2,:,:]
-#            img_o_[:,2,:,:] = img_o[:,0,:,:]
-#            img_h_ = img_h.clone()
-#            img_h_[:,0,:,:] = img_h[:,2,:,:]
-#            img_h_[:,2,:,:] = img_h[:,0,:,:]
-#            img_v_ = img_v.clone()
-#            img_v_[:,0,:,:] = img_v[:,2,:,:]
-#            img_v_[:,2,:,:] = img_v[:,0,:,:]
-#            
-#            out_o3 = net3(img_o_, visit)
-#            out_h3 = net3(img_h_, visit)
-#            out_v3 = net3(img_v_, visit) 
-            
-#            out = (sm(out_o3) * 2 + sm(out_h3) + sm(out_v3))
-            
-            out = (sm(out_o) * 2 + sm(out_h) + sm(out_v) + 
-                   sm(out_o1) * 2 + sm(out_h1) + sm(out_v1) + 
-                   sm(out_o2) * 2 + sm(out_h2) + sm(out_v2) +
-                   sm(out_o3) * 2 + sm(out_h3) + sm(out_v3))
-
-            _, preds = torch.max(out, 1)
-            out_lab.append(preds.cpu().numpy().flatten().astype(np.uint8) + 1)
-    
-    out_lab_np = []
-    for j in range(len(out_lab)):
-        for i in range(len(out_lab[j])):
-            out_lab_np.append(out_lab[j][i])
-    out_lab_np = np.array(out_lab_np)
-    
-#    out_lab_np = predict(net, dataloader_test, opt.device)
-#    out_lab_np = predict_TTA(net, dataloader_test, opt.device)
+    # 预测
+    nets = [net]
+#    nets = [net, net2, net3]
+#    out_lab_np = predict(dataloader_test, opt.device, *nets)
+    out_lab_np = predict_TTA(dataloader_test, opt.device, *nets)
     
     # 输出预测文件
     f = open(r"data/out-label.txt", "w+")

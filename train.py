@@ -55,36 +55,36 @@ if __name__ == '__main__':
     
     # 加载数据
     print('Loading Data...')
-    imgs_train = np.load(join(opt.data_npy, "train-over-img.npy"))
-    visits_train = np.load(join(opt.data_npy, "train-over-visit.npy"))
-    labs_train = np.load(join(opt.data_npy, "train-over-label.npy"))
+#    imgs_train = np.load(join(opt.data_npy, "train-over-img.npy"))
+#    visits_train = np.load(join(opt.data_npy, "train-over-visit.npy"))
+#    labs_train = np.load(join(opt.data_npy, "train-over-label.npy"))
+#    
+#    imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
+#    visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
+#    labs_val = np.load(join(opt.data_npy, "val-label.npy"))
+#    
+#    imgs_train = imgProc(imgs_train)
+#    imgs_val = imgProc(imgs_val)
+#    visits_train = torch.FloatTensor(visits_train.transpose(0,3,1,2))
+#    visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
+#    labs_train = torch.LongTensor(labs_train) - 1 # 网络输出从0开始，数据集标签从1开始
+#    labs_val = torch.LongTensor(labs_val) - 1
+#    
+#    print('image shape: ', imgs_train.shape, imgs_val.shape)
+#    print('visit shape: ', visits_train.shape, visits_val.shape)
+#    print('label data: ', labs_train.min(), labs_train.max())
+#    
+#    dataloader_train = DataLoader(dataset=TensorDataset(imgs_train, visits_train, labs_train),
+#                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
+#    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
+#                                  batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
     
-    imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
-    visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
-    labs_val = np.load(join(opt.data_npy, "val-label.npy"))
-    
-    imgs_train = imgProc(imgs_train)
-    imgs_val = imgProc(imgs_val)
-    visits_train = torch.FloatTensor(visits_train.transpose(0,3,1,2))
-    visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
-    labs_train = torch.LongTensor(labs_train) - 1 # 网络输出从0开始，数据集标签从1开始
-    labs_val = torch.LongTensor(labs_val) - 1
-    
-    print('image shape: ', imgs_train.shape, imgs_val.shape)
-    print('visit shape: ', visits_train.shape, visits_val.shape)
-    print('label data: ', labs_train.min(), labs_train.max())
-    
-    dataloader_train = DataLoader(dataset=TensorDataset(imgs_train, visits_train, labs_train),
-                                  batch_size=opt.batchsize, shuffle=True, num_workers=opt.workers)
-    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
-                                  batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
-    
-#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
-#    dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
-#                            shuffle=True, num_workers=opt.workers)   
-#    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
-#    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
-#                                shuffle=False, num_workers=opt.workers)
+    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
+    dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
+                            shuffle=True, num_workers=opt.workers)   
+    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
+    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
+                                shuffle=False, num_workers=opt.workers)
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
