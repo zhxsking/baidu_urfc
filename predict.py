@@ -98,6 +98,14 @@ if __name__ == '__main__':
     state = torch.load(r"checkpoint\best-cnn-mmnet.pkl", map_location=opt.device)
     net3.load_state_dict(state['net'])
     
+    net4 = MMNet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-mmnet-实测6464.pkl", map_location=opt.device)
+    net4.load_state_dict(state['net'])
+    
+    net5 = mSDNet50().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-sdnet-50-实测6264.pkl", map_location=opt.device)
+    net5.load_state_dict(state['net'])
+    
 #    net3 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
 #    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device)
 #    net3.load_state_dict(state['state_dict'])
@@ -115,8 +123,9 @@ if __name__ == '__main__':
     device = opt.device
     
     # 预测
-    nets = [net]
+#    nets = [net]
 #    nets = [net, net2, net3]
+    nets = [net, net2, net3, net4, net5]
 #    out_lab_np = predict(dataloader_test, opt.device, *nets)
     out_lab_np = predict_TTA(dataloader_test, opt.device, *nets)
     

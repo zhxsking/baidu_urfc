@@ -142,7 +142,7 @@ if __name__ == '__main__':
     # 加载模型
     print('Loading Model...')
     net = mSDNet50().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-50.pkl", map_location=opt.device) # 0.6139 实测
+    state = torch.load(r"checkpoint\best-cnn-sdnet-50.pkl", map_location=opt.device) # 0.6139 实测0.6394
     net.load_state_dict(state['net'])
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
@@ -163,8 +163,8 @@ if __name__ == '__main__':
 #    net3.load_state_dict(state['state_dict'])
     
     #%% 验证原始数据
-    nets = [net]
-#    nets = [net, net2, net3]
+#    nets = [net]
+    nets = [net, net2, net3]
     loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, *nets)
 #    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, *nets)
     
