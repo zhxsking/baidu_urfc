@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from imgaug import augmenters as iaa
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as F
 
 from linear_p import linear_p
 
@@ -147,12 +148,53 @@ def get_tta_batch(batch):
         transforms.RandomVerticalFlip(1),
         transforms.ToTensor(),
     ])
+    transform_h_v = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.RandomHorizontalFlip(1),
+        transforms.RandomVerticalFlip(1),
+        transforms.ToTensor(),
+    ])
+    transform_n90 = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.RandomRotation((-90,-90)), # 负数代表顺时针旋转
+        transforms.ToTensor(),
+    ])
+    transform_p90 = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.RandomRotation((90,90)),
+        transforms.ToTensor(),
+    ])
+    transform_h_n90 = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.RandomHorizontalFlip(1),
+        transforms.RandomRotation((-90,-90)), # 负数代表顺时针旋转
+        transforms.ToTensor(),
+    ])
+    transform_v_n90 = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.RandomVerticalFlip(1),
+        transforms.RandomRotation((-90,-90)), # 负数代表顺时针旋转
+        transforms.ToTensor(),
+    ])
+    
     batch_h = batch.clone()
     batch_v = batch.clone()
+    batch_h_v = batch.clone()
+    batch_n90 = batch.clone()
+    batch_p90 = batch.clone()
+    batch_h_n90 = batch.clone()
+    batch_v_n90 = batch.clone()
     for i in range(batch.shape[0]):
         batch_h[i,:] = transform_h(batch_h[i,:])
         batch_v[i,:] = transform_v(batch_v[i,:])
-    return batch_h, batch_v
+        
+        batch_h_v[i,:] = transform_h_v(batch_h_v[i,:])
+        batch_n90[i,:] = transform_n90(batch_n90[i,:])
+        batch_p90[i,:] = transform_p90(batch_p90[i,:])
+        batch_h_n90[i,:] = transform_h_n90(batch_h_n90[i,:])
+        batch_v_n90[i,:] = transform_v_n90(batch_v_n90[i,:])
+
+    return batch_h, batch_v, batch_h_v, batch_n90, batch_p90, batch_h_n90, batch_v_n90
 
 class Record(object):
     '''记录loss、acc等信息'''

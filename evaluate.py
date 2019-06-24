@@ -48,11 +48,12 @@ def evalNet(loss_func, dataloader_val, device, *nets):
             for cnt, net in enumerate(nets):
                 net.eval()
                 out_tmp, _ = net(img, visit)
+                out_tmp = sm(out_tmp)
 
                 if (cnt==0):
-                    out = sm(out_tmp)
+                    out = out_tmp
                 else:
-                    out = out + sm(out_tmp)
+                    out = out + out_tmp
             
             loss = loss_func(out, out_gt)
             _, preds = torch.max(out, 1)
@@ -79,25 +80,31 @@ def evalNet_TTA(loss_func, dataloader_val, device, *nets):
     labs_ori, labs_out = [], []
     with torch.no_grad():
         for (img_o, visit, out_gt) in tqdm(dataloader_val):
-            img_h, img_v = get_tta_batch(img_o)
+            img_tta = get_tta_batch(img_o) # 得到tta之后的图像
             
             img_o = img_o.to(device)
-            img_h = img_h.to(device)
-            img_v = img_v.to(device)
             visit = visit.to(device)
             out_gt = out_gt.to(device)
             
             for cnt, net in enumerate(nets):
                 net.eval()
                 out_o, _ = net(img_o, visit)
-                out_h, _ = net(img_h, visit)
-                out_v, _ = net(img_v, visit)
-                out_tmp = sm(out_o) * 2 + sm(out_h) + sm(out_v)
+                out_o = sm(out_o)
+                
+                for i in range(len(img_tta)):
+                    out_tta_tmp, _ = net(img_tta[i].to(device), visit)
+                    out_tta_tmp = sm(out_tta_tmp)
+                    if (i==0):
+                        out_tta = out_tta_tmp
+                    else:
+                        out_tta = out_tta + out_tta_tmp
+                
+                out_tmp = out_o * i + out_tta
 
                 if (cnt==0):
-                    out = sm(out_tmp)
+                    out = out_tmp
                 else:
-                    out = out + sm(out_tmp)
+                    out = out + out_tmp
             
             loss = loss_func(out, out_gt)
             _, preds = torch.max(out, 1)
@@ -142,7 +149,7 @@ if __name__ == '__main__':
     # 加载模型
     print('Loading Model...')
     net = mSDNet50().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-50.pkl", map_location=opt.device) # 0.6139 实测0.6394
+    state = torch.load(r"checkpoint\best-cnn-sdnet-50.pkl", map_location=opt.device) # 0.6139 tta0.6111 实测0.6394
     net.load_state_dict(state['net'])
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
@@ -151,11 +158,11 @@ if __name__ == '__main__':
     net1.load_state_dict(state['net'])
     
     net2 = mSDNet101().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 0.6178 实测0.6526
+    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 0.6178 tta0.6261 实测0.6526
     net2.load_state_dict(state['net'])
     
     net3 = MMNet().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-mmnet.pkl", map_location=opt.device) # 0.6200 实测0.6531
+    state = torch.load(r"checkpoint\best-cnn-mmnet.pkl", map_location=opt.device) # 0.6200 2tta0.6211 7tta0.6250 实测0.6531
     net3.load_state_dict(state['net'])
     
 #    net3 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
@@ -163,58 +170,52 @@ if __name__ == '__main__':
 #    net3.load_state_dict(state['state_dict'])
     
     #%% 验证原始数据
-#    nets = [net]
-    nets = [net, net2, net3]
-    loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, *nets)
-#    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, *nets)
+    nets = [net2]
+#    nets = [net, net2, net3]
+#    loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, *nets)
+    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, *nets)
     
     #%%
-#    net.eval()
-##    net1.eval()
-##    net2.eval()
-##    net3.eval()
+#    device = opt.device
 #    sm = nn.Softmax(dim=1)
 #    acc_temp = Record()
 #    loss_temp = Record()
 #    labs_ori, labs_out = [], []
 #    with torch.no_grad():
-#        for cnt, (img, visit, out_gt) in tqdm(enumerate(dataloader_val, 1)):
-#            img_h, img_v = get_tta_batch(img)
+#        for (img_o, visit, out_gt) in tqdm(dataloader_val):
+#            img_tta = get_tta_batch(img_o)
 #            
-#            img_h = img_h.to(opt.device)
-#            img_v = img_v.to(opt.device)
+#            img_o = img_o.to(device)
+#            visit = visit.to(device)
+#            out_gt = out_gt.to(device)
 #            
-#            img = img.to(opt.device)
-#            visit = visit.to(opt.device)
-#            out_gt = out_gt.to(opt.device)
-#            
-#            out0, _ = net(img, visit)
-##            out1, _ = net1(img, visit)
-##            out2, _ = net2(img, visit)
-##            out3, _ = net3(img, visit)
-#            
-##            out_o, _ = net3(img, visit)
-##            out_h, _ = net3(img_h, visit)
-##            out_v, _ = net3(img_v, visit)
-##            out = out_o * 2 + out_h + out_v
-#            
-##            img_ = img.clone()
-##            img_[:,0,:,:] = img[:,2,:,:]
-##            img_[:,2,:,:] = img[:,0,:,:]
-##            out3 = net3(img_, visit)
-#            
-##            out = (out0) + (out1) + (out2) + (out3)
-##            out = sm(out0) + sm(out1)
-##            out = sm(out0) + sm(out1) + sm(out2) + sm(out3)
-#            out = sm(out0)
+#            for cnt, net in enumerate(nets):
+#                net.eval()
+#                out_o, _ = net(img_o, visit)
+#                out_o = sm(out_o)
+#                
+#                for i in range(len(img_tta)):
+#                    out_tta_tmp, _ = net(img_tta[i].to(device), visit)
+#                    out_tta_tmp = sm(out_tta_tmp)
+#                    if (i==0):
+#                        out_tta = out_tta_tmp
+#                    else:
+#                        out_tta = out_tta + out_tta_tmp
+#                
+#                out_tmp = out_o * 7 + out_tta
 #
+#                if (cnt==0):
+#                    out = out_tmp
+#                else:
+#                    out = out + out_tmp
+#            
 #            loss = loss_func(out, out_gt)
 #            _, preds = torch.max(out, 1)
-#            loss_temp.update(loss.item(), img.shape[0])
+#            
+#            loss_temp.update(loss.item(), img_o.shape[0])
 #            acc_temp.update((float(torch.sum(preds == out_gt.data)) / len(out_gt)), len(out_gt))
-#            labs_out.append(preds.cpu().numpy().flatten().astype(np.uint8))
 #            labs_ori.append(out_gt.cpu().numpy())
-#    loss, acc =  loss_temp.avg, acc_temp.avg
+#            labs_out.append(preds.cpu().numpy().flatten().astype(np.uint8))
 #    labs_ori_np = []
 #    labs_out_np = []
 #    for j in range(len(labs_ori)):
@@ -223,6 +224,7 @@ if __name__ == '__main__':
 #            labs_out_np.append(labs_out[j][i])            
 #    labs_ori_np = np.array(labs_ori_np)
 #    labs_out_np = np.array(labs_out_np)
+#    loss, acc =  loss_temp.avg, acc_temp.avg
 
     # 绘制混淆矩阵, 计算acc
     cm = metrics.confusion_matrix(labs_ori_np, labs_out_np)

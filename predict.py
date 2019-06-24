@@ -26,11 +26,12 @@ def predict(dataloader_test, device, *nets):
             for cnt, net in enumerate(nets):
                 net.eval()
                 out_tmp, _ = net(img, visit)
+                out_tmp = sm(out_tmp)
 
                 if (cnt==0):
-                    out = sm(out_tmp)
+                    out = out_tmp
                 else:
-                    out = out + sm(out_tmp)
+                    out = out + out_tmp
             
             _, preds = torch.max(out, 1)
             labs_out.append(preds.cpu().numpy().flatten().astype(np.uint8) + 1)
@@ -47,24 +48,30 @@ def predict_TTA(dataloader_test, device, *nets):
     labs_out = []
     with torch.no_grad():
         for (img_o, visit) in tqdm(dataloader_test):
-            img_h, img_v = get_tta_batch(img_o)
+            img_tta = get_tta_batch(img_o) # 得到tta之后的图像
             
             img_o = img_o.to(device)
-            img_h = img_h.to(device)
-            img_v = img_v.to(device)
             visit = visit.to(device)
             
             for cnt, net in enumerate(nets):
                 net.eval()
                 out_o, _ = net(img_o, visit)
-                out_h, _ = net(img_h, visit)
-                out_v, _ = net(img_v, visit)
-                out_tmp = sm(out_o) * 2 + sm(out_h) + sm(out_v)
+                out_o = sm(out_o)
+                
+                for i in range(len(img_tta)):
+                    out_tta_tmp, _ = net(img_tta[i].to(device), visit)
+                    out_tta_tmp = sm(out_tta_tmp)
+                    if (i==0):
+                        out_tta = out_tta_tmp
+                    else:
+                        out_tta = out_tta + out_tta_tmp
+                
+                out_tmp = out_o * i + out_tta
 
                 if (cnt==0):
-                    out = sm(out_tmp)
+                    out = out_tmp
                 else:
-                    out = out + sm(out_tmp)
+                    out = out + out_tmp
             
             _, preds = torch.max(out, 1)
             labs_out.append(preds.cpu().numpy().flatten().astype(np.uint8) + 1)
