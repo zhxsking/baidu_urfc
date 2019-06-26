@@ -10,7 +10,7 @@ import torchvision.transforms.functional as F
 from linear_p import linear_p
 
 
-def imgProc(x):
+def imgProc(x, means, stds):
     '''image预处理，x为NHWC格式uint8类型的numpy矩阵，生成NCHW的tensor'''
 #    for j in range(x.shape[0]):
 #        for i in range(3):
@@ -33,8 +33,6 @@ def imgProc(x):
 #            x[j,i,:,:] -= x[j,i,:,:].mean()
 #    
     # 标准化
-#    means = [x[:,i,:,:].mean() for i in range(3)]
-#    stds = [x[:,i,:,:].std() for i in range(3)]
 #    mean = torch.as_tensor(means, dtype=torch.float32)
 #    std = torch.as_tensor(stds, dtype=torch.float32)
 #    x = x.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
@@ -46,7 +44,7 @@ def func_images(img, random_state, parents, hooks):
 
 def aug_img(img):
     '''对uint8图像或图像的一个batch（NHWC）进行aug'''
-    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+#    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
     aug_seq = iaa.Sequential([
         iaa.Fliplr(0.5),
         iaa.Flipud(0.5),

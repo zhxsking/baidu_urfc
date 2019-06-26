@@ -144,7 +144,7 @@ class MultiModalNet(nn.Module):
                 nn.Linear(model.last_linear.in_features, 256)
             )
 
-        self.cls = nn.Linear(320,config.num_classes) 
+        self.cls = nn.Linear(320, 9) 
 
     def forward(self, x_img,x_vis):
         x_img = self.img_encoder(x_img)

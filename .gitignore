@@ -10,3 +10,4 @@ catboost_info/catboost_training.json
 *.tsv
 data/train.csv-32911
 data/train.csv
+*.tar

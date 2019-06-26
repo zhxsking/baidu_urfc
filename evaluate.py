@@ -16,7 +16,7 @@ from multimodal import MultiModalNet
 
 from urfc_dataset import UrfcDataset
 from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch, get_tta_batch
-from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet50, mSDNet101, mPNASNet, MMNet
+from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet50, mSDNet50_p, mSDNet101, mPNASNet, MMNet
 from urfc_option import Option
 
 
@@ -47,7 +47,11 @@ def evalNet(loss_func, dataloader_val, device, *nets):
             
             for cnt, net in enumerate(nets):
                 net.eval()
-                out_tmp, _ = net(img, visit)
+                out_tmp = net(img, visit)
+                
+                if isinstance(out_tmp, tuple):
+                    out_tmp = out_tmp[0]
+                
                 out_tmp = sm(out_tmp)
 
                 if (cnt==0):
@@ -88,11 +92,19 @@ def evalNet_TTA(loss_func, dataloader_val, device, *nets):
             
             for cnt, net in enumerate(nets):
                 net.eval()
-                out_o, _ = net(img_o, visit)
+                out_o = net(img_o, visit)
+                
+                if isinstance(out_o, tuple):
+                    out_o = out_o[0]
+                
                 out_o = sm(out_o)
                 
                 for i in range(len(img_tta)):
-                    out_tta_tmp, _ = net(img_tta[i].to(device), visit)
+                    out_tta_tmp = net(img_tta[i].to(device), visit)
+                    
+                    if isinstance(out_tta_tmp, tuple):
+                        out_tta_tmp = out_tta_tmp[0]
+                    
                     out_tta_tmp = sm(out_tta_tmp)
                     if (i==0):
                         out_tta = out_tta_tmp
@@ -134,50 +146,59 @@ if __name__ == '__main__':
     visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
     labs_val = np.load(join(opt.data_npy, "val-label.npy"))
     
-    imgs_val = imgProc(imgs_val)
+    imgs_val = imgProc(imgs_val, opt.means, opt.stds)
     visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
     labs_val = torch.LongTensor(labs_val) - 1
     
     dataset_val = TensorDataset(imgs_val, visits_val, labs_val)
     dataloader_val = DataLoader(dataset=dataset_val, shuffle=False, 
-                                batch_size=opt.batchsize, num_workers=opt.workers)
+                                batch_size=256, num_workers=opt.workers)
     
 #    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
-#    dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
+#    dataloader_val = DataLoader(dataset=dataset_val, batch_size=128,
 #                                shuffle=False, num_workers=opt.workers)
     
     # 加载模型
     print('Loading Model...')
-    net = mSDNet50().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-50.pkl", map_location=opt.device) # 0.6139 tta0.6111 实测0.6394
-    net.load_state_dict(state['net'])
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
-    net1 = mPNASNet().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-pnasnet.pkl", map_location=opt.device) # 0.59 实测0.6077
-    net1.load_state_dict(state['net'])
+    net0 = mSDNet50_p().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-sdnet-50-p.pkl", map_location=opt.device) # 0.6139 tta0.6111 实测0.6394
+    net0.load_state_dict(state['net'])
+    
+#    net1 = mSDNet50().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-sdnet-50-59.pkl", map_location=opt.device) # 0.6139 tta0.6111 实测0.6394
+#    net1.load_state_dict(state['net'])
     
     net2 = mSDNet101().to(opt.device)
     state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 0.6178 tta0.6261 实测0.6526
     net2.load_state_dict(state['net'])
+#    
+#    net3 = MMNet().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-mmnet-59.pkl", map_location=opt.device) # 0.6200 2tta0.6211 7tta0.6250 实测0.6531
+#    net3.load_state_dict(state['net'])
+#    
+    net4 = mSDNet101().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 0.6178 tta0.6261 实测0.6526
+    net4.load_state_dict(state['net'])
     
-    net3 = MMNet().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-mmnet.pkl", map_location=opt.device) # 0.6200 2tta0.6211 7tta0.6250 实测0.6531
-    net3.load_state_dict(state['net'])
-    
-#    net3 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
-#    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device)
-#    net3.load_state_dict(state['state_dict'])
+#    netm = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
+#    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device) # 实测0.6447
+#    netm.load_state_dict(state['state_dict'])
+#    
+#    netm1 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-mutimodel.pkl", map_location=opt.device)
+#    netm1.load_state_dict(state['net'])
     
     #%% 验证原始数据
-    nets = [net2]
-#    nets = [net, net2, net3]
-#    loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, *nets)
-    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, *nets)
+#    nets = [net0]
+    nets = [net0]
+    loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, *nets)
+#    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, *nets)
     
     #%%
 #    device = opt.device
-#    sm = nn.Softmax(dim=1)
+#    sm = nn.Softmax(dim=1)  # nn.functional.normalize
 #    acc_temp = Record()
 #    loss_temp = Record()
 #    labs_ori, labs_out = [], []
@@ -191,12 +212,25 @@ if __name__ == '__main__':
 #            
 #            for cnt, net in enumerate(nets):
 #                net.eval()
-#                out_o, _ = net(img_o, visit)
+#                out_o = net(img_o, visit)
+#                
+#                if isinstance(out_o, tuple):
+#                    out_o = out_o[0]
+#                
+##                out_o = out_o + 2*torch.mul(out_o, torch.le(out_o,0).float()) # 负的更负
+#                
 #                out_o = sm(out_o)
 #                
 #                for i in range(len(img_tta)):
-#                    out_tta_tmp, _ = net(img_tta[i].to(device), visit)
+#                    out_tta_tmp = net(img_tta[i].to(device), visit)
+#                    
+#                    if isinstance(out_tta_tmp, tuple):
+#                        out_tta_tmp = out_tta_tmp[0]
+#                    
+##                    out_tta_tmp = out_tta_tmp + 2*torch.mul(out_tta_tmp, torch.le(out_tta_tmp,0).float())
+#                    
 #                    out_tta_tmp = sm(out_tta_tmp)
+#                    
 #                    if (i==0):
 #                        out_tta = out_tta_tmp
 #                    else:
@@ -226,7 +260,7 @@ if __name__ == '__main__':
 #    labs_out_np = np.array(labs_out_np)
 #    loss, acc =  loss_temp.avg, acc_temp.avg
 
-    # 绘制混淆矩阵, 计算acc
+    #%% 绘制混淆矩阵, 计算acc
     cm = metrics.confusion_matrix(labs_ori_np, labs_out_np)
     acc_all_val = metrics.accuracy_score(labs_ori_np, labs_out_np)
     plotConfusionMatrix(cm)

@@ -11,7 +11,7 @@ class Option():
         self.epochs = 20
         self.lr = 1e-3
         self.batchsize = 64
-        self.weight_decay = 1e-4
+        self.weight_decay = 5e-2
         self.early_stop_num = 150 # acc在多少个epoch下都不提升就提前结束训练
         self.workers = 0 # 4 多进程，可能会卡程序
         self.pretrained = True
@@ -21,7 +21,6 @@ class Option():
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
         self.num_train = 5000
-        
         
         self.dir_npy_suffix = "_npy_26_24_7"
         self.disk = "E"
@@ -33,8 +32,8 @@ class Option():
         self.dir_visit_npy = self.dir_visit + self.dir_npy_suffix
         self.dir_visit_npy_test = self.dir_visit_test + self.dir_npy_suffix
         
-#        self.means = (-1.2232209e-09, -7.9797535e-10, -3.0236139e-10)
-#        self.stds =(0.10928233, 0.098093316, 0.087956846)
+        self.means = (0.4553296, 0.52905685, 0.6211398)
+        self.stds =(0.14767659, 0.13119018, 0.1192783)
         
         seed = 47
         ia.seed(seed)
@@ -44,7 +43,5 @@ class Option():
         torch.cuda.manual_seed(seed)
         torch.backends.cudnn.deterministic = True
         torch.cuda.empty_cache()
-#        sklearn
 
-        
         

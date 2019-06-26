@@ -10,6 +10,7 @@ import torchvision.transforms as transforms
 from imgaug import augmenters as iaa
 
 from urfc_option import Option
+from linear_p import linear_p
 
 
 class UrfcDataset(Dataset):
@@ -27,7 +28,7 @@ class UrfcDataset(Dataset):
         
         img = plt.imread(join(self.dir_img, label_str, self.data_names[index] + ".jpg"))
         visit = np.load(join(self.dir_visit, self.data_names[index] + ".npy"))
-        
+                
         if self.aug:
             img = self.augumentor(img)
         
@@ -38,17 +39,16 @@ class UrfcDataset(Dataset):
 #            return x
         
         # 标准化
-#        means = (0.46832234, 0.53796417, 0.6216422)
-#        stds =(0.1810789, 0.16477963, 0.14735216)
-#        means = (-1.3326176e-09, -5.8395827e-10, -1.153197e-10)
-#        stds =(0.11115803, 0.09930103, 0.08884794)
+        means = (0.4553296, 0.52905685, 0.6211398)
+        stds =(0.14767659, 0.13119018, 0.1192783)
         img_process = transforms.Compose([
                 transforms.ToPILImage(),
                 transforms.ToTensor(),
-#                transforms.Lambda(subMean),
 #                transforms.Normalize(means, stds),
+#                transforms.Lambda(subMean),
                 ])
         img = img_process(img)
+        
         visit = transforms.ToTensor()(visit)
         
         return img, visit, int(label_str)-1
@@ -57,21 +57,53 @@ class UrfcDataset(Dataset):
         return len(self.data_names)
     
     def augumentor(self,image):
+        sometimes = lambda aug: iaa.Sometimes(0.5, aug)
         augment_img = iaa.Sequential([
+#            iaa.Fliplr(0.5),
+#            iaa.Flipud(0.5),
+#            iaa.SomeOf((0,4),[
+#                iaa.Affine(rotate=90),
+#                iaa.Affine(rotate=180),
+#                iaa.Affine(rotate=270),
+#                iaa.Affine(shear=(-16, 16)),
+#            ]),
+#            iaa.OneOf([
+#                    iaa.GaussianBlur((0, 3.0)), # blur images with a sigma between 0 and 3.0
+#                    iaa.AverageBlur(k=(2, 7)), # blur image using local means with kernel sizes between 2 and 7
+#                    iaa.MedianBlur(k=(3, 11)), # blur image using local medians with kernel sizes between 2 and 7
+#                ]),
+#            iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)), # sharpen images
+#            
             iaa.Fliplr(0.5),
             iaa.Flipud(0.5),
-            iaa.SomeOf((0,4),[
-                iaa.Affine(rotate=90),
-                iaa.Affine(rotate=180),
-                iaa.Affine(rotate=270),
-                iaa.Affine(shear=(-16, 16)),
-            ]),
-            iaa.OneOf([
-                    iaa.GaussianBlur((0, 3.0)), # blur images with a sigma between 0 and 3.0
-                    iaa.AverageBlur(k=(2, 7)), # blur image using local means with kernel sizes between 2 and 7
-                    iaa.MedianBlur(k=(3, 11)), # blur image using local medians with kernel sizes between 2 and 7
+            sometimes(iaa.Affine(
+                scale={"x": (0.9, 1.1), "y": (0.9, 1.1)},
+                translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
+                rotate=(-15, 15),
+                shear=(-16, 16),
+                order=[0, 1],
+            )),
+            iaa.SomeOf((0, 4), [
+                iaa.OneOf([
+                    iaa.GaussianBlur((0, 2)),
+                    iaa.AverageBlur(k=(2, 5)),
+                    iaa.MedianBlur(k=(3, 5)),
                 ]),
-            #iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)), # sharpen images
+                iaa.Sharpen(alpha=(0, 0.5), lightness=(0.8, 1.2)),
+                sometimes(iaa.OneOf([
+                    iaa.EdgeDetect(alpha=(0, 0.7)),
+                    iaa.DirectedEdgeDetect(alpha=(0, 0.7), direction=(0.0, 1.0)),
+                ])),
+                iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
+                iaa.Dropout((0.01, 0.1), per_channel=0.5),
+                iaa.OneOf([
+                    iaa.Fog(),
+                    iaa.Clouds(),
+                ]),
+                iaa.Add((-10, 10), per_channel=0.5),
+                iaa.Multiply((0.7, 1.3), per_channel=0.5),
+            ], random_order=True)
+            
             ], random_order=True)
 
         image_aug = augment_img.augment_image(image)

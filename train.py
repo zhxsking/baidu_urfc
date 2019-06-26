@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import metrics
  
-from cnn import mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet101, mPNASNet, mNASNet, mPOLYNet, mXNet, MMNet
+from cnn import mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101, mPNASNet, mNASNet, mPOLYNet, mXNet, MMNet
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
 from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch
@@ -44,7 +44,9 @@ if __name__ == '__main__':
     opt = Option()
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
-    log.write('备注：')
+    msg = '备注：'
+    print(msg)
+    log.write(msg)
 
     # 初始化保存目录
     if not os.path.exists('checkpoint'):
@@ -63,8 +65,8 @@ if __name__ == '__main__':
 #    visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
 #    labs_val = np.load(join(opt.data_npy, "val-label.npy"))
 #    
-#    imgs_train = imgProc(imgs_train)
-#    imgs_val = imgProc(imgs_val)
+#    imgs_train = imgProc(imgs_train, opt.means, opt.stds)
+#    imgs_val = imgProc(imgs_val, opt.means, opt.stds)
 #    visits_train = torch.FloatTensor(visits_train.transpose(0,3,1,2))
 #    visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
 #    labs_train = torch.LongTensor(labs_train) - 1 # 网络输出从0开始，数据集标签从1开始
@@ -81,7 +83,7 @@ if __name__ == '__main__':
     
     dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
-                            shuffle=True, num_workers=opt.workers)   
+                            shuffle=True, num_workers=opt.workers)
     dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
     dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
                                 shuffle=False, num_workers=opt.workers)
@@ -116,9 +118,6 @@ if __name__ == '__main__':
     best_epoch_loss = 1
     best_model_loss = copy.deepcopy(net.state_dict())
     
-    losses = Record()
-    accs = Record()
-    
     # 训练
     print('Start Training...')
     for epoch in range(opt.epochs):
@@ -127,13 +126,10 @@ if __name__ == '__main__':
         net.train()
 #        scheduler.step(epoch)
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
-            img = aug_batch(img)
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
             out, _ = net(img, visit)
-            
-#            sys.exit(0)
             
             loss = loss_func(out, out_gt)
             optimizer.zero_grad()

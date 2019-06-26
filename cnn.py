@@ -357,6 +357,63 @@ class mSDNet50(nn.Module):
  
         return out, out_fea
 
+class mSDNet50_p(nn.Module):
+    '''sdnet'''
+    def __init__(self, pretrained=False):
+        super().__init__()
+        if pretrained:
+            mdl= pretrainedmodels.__dict__['se_resnext50_32x4d'](num_classes=1000, pretrained='imagenet')
+        else:
+            mdl= pretrainedmodels.__dict__['se_resnext50_32x4d'](num_classes=1000, pretrained=None)
+        
+        self.features = list(mdl.children())[:-2]
+        self.features.append(nn.AdaptiveAvgPool2d(1))
+        self.features = nn.Sequential(*self.features)
+        self.features[0].conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, 
+                                        padding=3, bias=False)
+        self.fc_img = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(in_features=mdl.last_linear.in_features, out_features=256, bias=True),
+                )
+        
+        self.visit_model=DPN26()
+        self.visit_model.linear = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(in_features=self.visit_model.linear.in_features, out_features=128, bias=True),
+                )
+        
+        self.fc = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(384, 9, bias=True),
+                )
+        
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+        
+    def forward(self, x_img, x_vis):
+        x_vis = self.visit_model(x_vis)
+        
+        features = self.features(x_img)
+        x_img = F.relu(features, inplace=True)
+        x_img = F.adaptive_avg_pool2d(x_img, (1, 1))
+        x_img = x_img.view(features.size(0), -1)
+        x_img = self.fc_img(x_img)
+        
+        x = torch.cat((x_img, x_vis), dim=1)
+        
+        out_fea = x
+        
+        out = self.fc(x)
+ 
+        return out, out_fea
+
 class mSDNet101(nn.Module):
     '''sdnet'''
     def __init__(self, pretrained=False):
