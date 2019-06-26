@@ -163,27 +163,27 @@ if __name__ == '__main__':
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
     net0 = mSDNet50_p().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-50-p.pkl", map_location=opt.device) # 0.6139 tta0.6111 实测0.6394
+    state = torch.load(r"checkpoint\best-cnn-sdnet-50-p.pkl", map_location=opt.device)
     net0.load_state_dict(state['net'])
     
 #    net1 = mSDNet50().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-50-59.pkl", map_location=opt.device) # 0.6139 tta0.6111 实测0.6394
+#    state = torch.load(r"checkpoint\best-cnn-sdnet-50-59.pkl", map_location=opt.device)
 #    net1.load_state_dict(state['net'])
     
     net2 = mSDNet101().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 0.6178 tta0.6261 实测0.6526
+    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device)
     net2.load_state_dict(state['net'])
 #    
 #    net3 = MMNet().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-mmnet-59.pkl", map_location=opt.device) # 0.6200 2tta0.6211 7tta0.6250 实测0.6531
+#    state = torch.load(r"checkpoint\best-cnn-mmnet-59.pkl", map_location=opt.device)
 #    net3.load_state_dict(state['net'])
 #    
     net4 = mSDNet101().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 0.6178 tta0.6261 实测0.6526
+    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device)
     net4.load_state_dict(state['net'])
     
 #    netm = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
-#    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device) # 实测0.6447
+#    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device)
 #    netm.load_state_dict(state['state_dict'])
 #    
 #    netm1 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
