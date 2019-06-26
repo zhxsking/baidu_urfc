@@ -106,13 +106,13 @@ if __name__ == '__main__':
 #    state = torch.load(r"checkpoint\best-cnn-sdnet-50.pkl", map_location=opt.device) # 实测0.6394
 #    net1.load_state_dict(state['net'])
     
-    net2 = mSDNet101().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 实测0.6526
-    net2.load_state_dict(state['net'])
-    
-    net3 = MMNet().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-mmnet.pkl", map_location=opt.device) # 实测0.6529
-    net3.load_state_dict(state['net'])
+#    net2 = mSDNet101().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 实测0.6526
+#    net2.load_state_dict(state['net'])
+#    
+#    net3 = MMNet().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-mmnet.pkl", map_location=opt.device) # 实测0.6529
+#    net3.load_state_dict(state['net'])
     
 #    net4 = MMNet().to(opt.device)
 #    state = torch.load(r"checkpoint\best-cnn-mmnet-实测6464.pkl", map_location=opt.device)
@@ -130,9 +130,9 @@ if __name__ == '__main__':
 #    state = torch.load(r"checkpoint\best-cnn-sdnet-50-59.pkl", map_location=opt.device) # 实测0.6394
 #    net7.load_state_dict(state['net'])
     
-    net8 = MMNet().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-mmnet-59.pkl", map_location=opt.device) # 实测0.6531
-    net8.load_state_dict(state['net'])
+#    net8 = MMNet().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-mmnet-59.pkl", map_location=opt.device) # 实测0.6531
+#    net8.load_state_dict(state['net'])
     
 #    net9 = mSDNet101().to(opt.device)
 #    state = torch.load(r"checkpoint\best-cnn-sdnet-101-63.pkl", map_location=opt.device) # tta更低 实测0.6305
@@ -142,13 +142,17 @@ if __name__ == '__main__':
 #    state = torch.load(r"checkpoint\best-cnn-sdnet-50-p.pkl", map_location=opt.device) # 实测0.6066
 #    net10.load_state_dict(state['net'])
     
+    net11 = MMNet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-mmnet-6630.pkl", map_location=opt.device)
+    net11.load_state_dict(state['net'])
+    
 #    netm = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device) # 实测0.6447
 #    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device)
 #    netm.load_state_dict(state['state_dict'])
     
-    netm1 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device) # 实测0.6688
-    state = torch.load(r"checkpoint\best-cnn-mutimodel.pkl", map_location=opt.device)
-    netm1.load_state_dict(state['net'])
+#    netm1 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device) # 实测0.6688
+#    state = torch.load(r"checkpoint\best-cnn-mutimodel.pkl", map_location=opt.device)
+#    netm1.load_state_dict(state['net'])
     
     
     # 加载数据
@@ -159,20 +163,18 @@ if __name__ == '__main__':
     visits_test = torch.FloatTensor(visits_test.transpose(0,3,1,2))
     
     dataloader_test = DataLoader(dataset=TensorDataset(imgs_test, visits_test),
-                                batch_size=1024, num_workers=opt.workers)
-    
-    device = opt.device
+                                batch_size=512, num_workers=opt.workers)
     
     # 预测
-#    nets = [net1]
+    nets = [net11]
 #    nets = [net, net2, net3]
-    nets = [net2, net3, net8, netm1]
+#    nets = [net2, net3, net8, netm1]
 #     nets = [net2, net3, net4, net6, net8, netm, netm1]
 #    out_lab_np = predict(dataloader_test, opt.device, *nets)
     out_lab_np = predict_TTA(dataloader_test, opt.device, *nets)
     
     for i in range(1,10):
-        print(np.sum(out_lab_np==i))
+        print(np.sum(out_lab_np==i), end=' ')
     
     # 输出预测文件
     f = open(r"data/out-label.txt", "w+")

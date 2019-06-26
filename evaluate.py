@@ -20,18 +20,27 @@ from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet50, mSDNet5
 from urfc_option import Option
 
 
-def plotConfusionMatrix(cm):
+def plotConfusionMatrix(cm, normalize=False, classes=None, cmap=plt.cm.Blues):
     '''绘制混淆矩阵'''
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    
     plt.figure()
-    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Oranges)
-    plt.title('confusion matrix')
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title('Confusion Matrix')
+    if (classes != None):
+        plt.xticks(np.arange(len(classes)), classes)
+        plt.yticks(np.arange(len(classes)), classes)
+    thresh = cm.max() / 2.
+    fmt = '.2f' if normalize else 'd'
     iters = np.reshape([[[i,j] for j in range(9)] for i in range(9)],(cm.size,2))
     for i, j in iters:
-        plt.text(j, i, format(cm[i, j]), horizontalalignment='center') # 显示对应的数字
+        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment='center',
+                 color="white" if cm[i, j] > thresh else "black") # 显示对应的数字
     plt.ylabel('GT')
     plt.xlabel('Prediction')
+    plt.tight_layout()
     plt.show()
-    
     
 def evalNet(loss_func, dataloader_val, device, *nets):
     """用验证集评判网络性能"""
@@ -162,28 +171,28 @@ if __name__ == '__main__':
     print('Loading Model...')
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
-    net0 = mSDNet50_p().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-50-p.pkl", map_location=opt.device)
-    net0.load_state_dict(state['net'])
+#    net0 = mSDNet50_p().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-sdnet-50-p.pkl", map_location=opt.device)
+#    net0.load_state_dict(state['net'])
     
 #    net1 = mSDNet50().to(opt.device)
 #    state = torch.load(r"checkpoint\best-cnn-sdnet-50-59.pkl", map_location=opt.device)
 #    net1.load_state_dict(state['net'])
     
-    net2 = mSDNet101().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device)
-    net2.load_state_dict(state['net'])
+#    net2 = mSDNet101().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device)
+#    net2.load_state_dict(state['net'])
 #    
-#    net3 = MMNet().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-mmnet-59.pkl", map_location=opt.device)
-#    net3.load_state_dict(state['net'])
+    net3 = MMNet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-mmnet-6630.pkl", map_location=opt.device)
+    net3.load_state_dict(state['net'])
 #    
-    net4 = mSDNet101().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device)
-    net4.load_state_dict(state['net'])
+#    net4 = mSDNet101().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device)
+#    net4.load_state_dict(state['net'])
     
 #    netm = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
-#    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device)
+#    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device)2
 #    netm.load_state_dict(state['state_dict'])
 #    
 #    netm1 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
@@ -192,7 +201,7 @@ if __name__ == '__main__':
     
     #%% 验证原始数据
 #    nets = [net0]
-    nets = [net0]
+    nets = [net3]
     loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, *nets)
 #    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, *nets)
     
@@ -263,8 +272,11 @@ if __name__ == '__main__':
     #%% 绘制混淆矩阵, 计算acc
     cm = metrics.confusion_matrix(labs_ori_np, labs_out_np)
     acc_all_val = metrics.accuracy_score(labs_ori_np, labs_out_np)
-    plotConfusionMatrix(cm)
+    class_names = ['001', '002', '003', '004', '005', '006', '007', '008', '009']
+    plotConfusionMatrix(cm, normalize=True, classes = class_names)
     print('val acc {:.4f}'.format(acc_all_val))
     
+    
+
 
     
