@@ -12,6 +12,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import metrics
+import torchvision
  
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101, mPNASNet, mNASNet, mPOLYNet, mXNet, MMNet
 from urfc_dataset import UrfcDataset
@@ -90,14 +91,15 @@ if __name__ == '__main__':
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
-    net = mSDNet101(pretrained=opt.pretrained).to(opt.device)
+    net = MMNet(pretrained=opt.pretrained).to(opt.device)
     loss_func = nn.CrossEntropyLoss().to(opt.device)
 #    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 2∗Tmax为周期，在一个周期内先下降，后上升
-#    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5, verbose=True) # 动态改变lr
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.3, patience=3, verbose=True)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1) # 动态改变lr
+#    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
+#    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-4, max_lr=1e-2, step_size_up=2000)
     
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
@@ -117,15 +119,22 @@ if __name__ == '__main__':
     best_loss = 99.0
     best_epoch_loss = 1
     best_model_loss = copy.deepcopy(net.state_dict())
+#    loss_list_cy = []
+#    lr_list_cy = []
     
     # 训练
     print('Start Training...')
+    
+    save_path = r"E:\pic\URFC-baidu\tttt"
+    
     for epoch in range(opt.epochs):
         loss_temp_train = Record()
         acc_temp_train = Record()
         net.train()
-#        scheduler.step(epoch)
+        scheduler.step(epoch)
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
+#            torchvision.utils.save_image(img, join(save_path, r'epoch-{}-iter-{}.jpg'.format(epoch+1, cnt)))
+            
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
@@ -135,6 +144,11 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            
+            # cyclic lr
+#            scheduler.step()
+#            loss_list_cy.append(loss.item())
+#            lr_list_cy.append(optimizer.param_groups[0]['lr'])
             
             _, preds = torch.max(out, 1)
             loss_temp_train.update(loss.item(), img.shape[0])
@@ -151,7 +165,7 @@ if __name__ == '__main__':
         loss_list_val.append(loss_temp_val)
         acc_list_val.append(acc_temp_val)
         
-        scheduler.step(acc_temp_val)
+#        scheduler.step(acc_temp_val)
         
         # 更新最优模型
         if (epoch+1) > 0 and acc_temp_val > best_acc:
