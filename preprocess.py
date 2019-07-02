@@ -105,7 +105,7 @@ def fun():
     f.close()
     
 
-def getSampleTxt(dir_img, num_train, val_balance=False):
+def getSampleTxt(dir_img, dir_img_test, num_train, val_balance=False):
     '''将数据写入txt'''
     print('Get Sample Txt...')
     
@@ -122,10 +122,10 @@ def getSampleTxt(dir_img, num_train, val_balance=False):
             files.append(join(path, file))
     
     bad_files = list(pd.read_csv("data/bad-files.txt", header=None)[0])
-    bad_files_iforest = list(pd.read_csv("data/bad-files-iforest-9.txt", header=None)[0])
+#    bad_files_iforest = list(pd.read_csv("data/bad-files-iforest-9.txt", header=None)[0])
         
-#    good_files = list(set(files)-set(bad_files))
-    good_files = list(set(files)-set(bad_files)-set(bad_files_iforest))
+    good_files = list(set(files)-set(bad_files))
+#    good_files = list(set(files)-set(bad_files)-set(bad_files_iforest))
     
     good_files = sorted(good_files)
     
@@ -173,7 +173,14 @@ def getSampleTxt(dir_img, num_train, val_balance=False):
         for item in train_data_over[i]:
             f.write(item[0:-4] + "\n")
     f.close()
-
+    
+    # 读取测试数据
+    files_test = (os.listdir(dir_img_test))
+    f = open("data/test.txt", "w+")
+    for item in files_test:
+        f.write(join(dir_img_test, item[0:-4]) + "\n")
+    f.close()
+    
 def imgs2npy(data_npy, get_ori=False):
     '''将图片集转换为一个npy文件'''
     
@@ -440,10 +447,11 @@ if __name__ == '__main__':
     opt = Option()
     since = time.time() # 记录时间
     dir_img = opt.dir_img
+    dir_img_test = opt.dir_img_test
 #    imgDataClean(opt.dir_img)
 #    imgDataClean_iforest(opt.dir_img)
     
-    getSampleTxt(opt.dir_img, opt.num_train, val_balance=False)
+    getSampleTxt(opt.dir_img, opt.dir_img_test, opt.num_train, val_balance=False)
 #    imgs2npy(opt.data_npy, get_ori=True)
 #    visits2npys(opt.dir_visit, opt.dir_visit_npy)
 #    visits2npy(opt.dir_visit_npy, opt.data_npy, get_ori=True)

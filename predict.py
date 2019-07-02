@@ -10,6 +10,7 @@ import torchvision.transforms as transforms
 
 from multimodal import MultiModalNet
 
+from urfc_dataset import UrfcDataset
 from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch, get_tta_batch
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet50, mSDNet50_p, mSDNet101, mPNASNet, MMNet
 from urfc_option import Option
@@ -19,13 +20,17 @@ def predict(dataloader_test, device, *nets):
     sm = nn.Softmax(dim=1)
     labs_out = []
     with torch.no_grad():
-        for (img, visit) in tqdm(dataloader_test):
+        for (img, visit, _) in tqdm(dataloader_test):
             img = img.to(device)
             visit = visit.to(device)
             
             for cnt, net in enumerate(nets):
                 net.eval()
-                out_tmp, _ = net(img, visit)
+                out_tmp = net(img, visit)
+                
+                if isinstance(out_tmp, tuple):
+                    out_tmp = out_tmp[0]
+                
                 out_tmp = sm(out_tmp)
 
                 if (cnt==0):
@@ -47,7 +52,7 @@ def predict_TTA(dataloader_test, device, *nets):
     sm = nn.Softmax(dim=1)
     labs_out = []
     with torch.no_grad():
-        for (img_o, visit) in tqdm(dataloader_test):
+        for (img_o, visit, _) in tqdm(dataloader_test):
             img_tta = get_tta_batch(img_o) # 得到tta之后的图像
             
             img_o = img_o.to(device)
@@ -157,13 +162,18 @@ if __name__ == '__main__':
     
     # 加载数据
     print('Loading Data...')
-    imgs_test = np.load(join(opt.data_npy, "test-img.npy"))
-    visits_test = np.load(join(opt.data_npy, "test-visit.npy"))
-    imgs_test = imgProc(imgs_test, opt.means, opt.stds)
-    visits_test = torch.FloatTensor(visits_test.transpose(0,3,1,2))
+#    imgs_test = np.load(join(opt.data_npy, "test-img.npy"))
+#    visits_test = np.load(join(opt.data_npy, "test-visit.npy"))
+#    imgs_test = imgProc(imgs_test, opt.means, opt.stds)
+#    visits_test = torch.FloatTensor(visits_test.transpose(0,3,1,2))
+#    
+#    dataloader_test = DataLoader(dataset=TensorDataset(imgs_test, visits_test),
+#                                batch_size=512, num_workers=opt.workers)
     
-    dataloader_test = DataLoader(dataset=TensorDataset(imgs_test, visits_test),
-                                batch_size=512, num_workers=opt.workers)
+    dataset_test = UrfcDataset(opt.dir_img_test, opt.dir_visit_npy_test, 
+                               "data/test.txt", aug=False, mode='test')
+    dataloader_test = DataLoader(dataset=dataset_test, batch_size=1024,
+                                shuffle=False, num_workers=opt.workers)
     
     # 预测
     nets = [net11]

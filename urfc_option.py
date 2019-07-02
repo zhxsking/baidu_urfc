@@ -9,9 +9,9 @@ class Option():
     """定义网络的参数及其他"""
     def __init__(self):
         self.epochs = 20
-        self.lr = 1e-3
+        self.lr = 3e-3 # 3e-3
         self.batchsize = 64
-        self.weight_decay = 5e-2
+        self.weight_decay = 3e-2
         self.early_stop_num = 150 # acc在多少个epoch下都不提升就提前结束训练
         self.workers = 0 # 4 多进程，可能会卡程序
         self.pretrained = True
@@ -23,12 +23,13 @@ class Option():
         self.num_train = 5000
         
         self.dir_npy_suffix = "_npy_26_24_7"
-        self.disk = "E"
-        self.dir_img = self.disk + r":\pic\URFC-baidu\train_image"
-        self.dir_img_test = self.disk + r":\pic\URFC-baidu\test_image"
-        self.dir_visit = self.disk + r":\pic\URFC-baidu\train_visit"
-        self.dir_visit_test = self.disk + r":\pic\URFC-baidu\test_visit"
-        self.data_npy = self.disk + r":\pic\URFC-baidu\data_npy_" + str(self.num_train)
+#        self.disk = r"E:\pic\URFC-baidu"
+        self.disk = r"E:\pic\URFC-baidu-2"
+        self.dir_img = self.disk + r"\train_image"
+        self.dir_img_test = self.disk + r"\test_image"
+        self.dir_visit = self.disk + r"\train_visit"
+        self.dir_visit_test = self.disk + r"\test_visit"
+        self.data_npy = self.disk + r"\data_npy_" + str(self.num_train)
         self.dir_visit_npy = self.dir_visit + self.dir_npy_suffix
         self.dir_visit_npy_test = self.dir_visit_test + self.dir_npy_suffix
         
