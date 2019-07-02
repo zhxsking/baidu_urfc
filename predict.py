@@ -188,7 +188,7 @@ if __name__ == '__main__':
     
     # 输出预测文件
     f = open(r"data/out-label.txt", "w+")
-    for i in range(10000):
+    for i in range(100000):
         f.write("{} \t {}\n".format(str(i).zfill(6), str(out_lab_np[i]).zfill(3)))
     f.close()
     

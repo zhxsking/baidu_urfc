@@ -15,6 +15,8 @@ from PIL import Image
 import cv2
 from sklearn.ensemble import IsolationForest
 from sklearn.model_selection import train_test_split
+import multiprocessing as mp
+import math
 
 from urfc_option import Option
 
@@ -262,7 +264,33 @@ def visit2array(table):
                 init[y][str2int[visit]][x] += 1
     return init.astype(np.float32)
 
-def visits2npys(dir_visit, dir_visit_npy):
+#def visits2npys(dir_visit, dir_visit_npy):
+#    '''将visit数据转换为npy文件'''
+#    
+#    # 初始化保存目录
+#    if not os.path.exists(dir_visit_npy):
+#        os.makedirs(dir_visit_npy)
+#    else:
+#        return
+#    
+#    visit_names = os.listdir(dir_visit)
+#    
+#    for visit_name in tqdm(visit_names):
+#        path_visit = join(dir_visit, visit_name)
+#        visit_table = pd.read_table(path_visit, header=None)
+#        visit_array = visit2array(visit_table)
+#        path_visit_npy = join(dir_visit_npy, visit_name.split('.')[0] + ".npy")
+#        np.save(path_visit_npy, visit_array)
+
+def test(dir_visit, dir_visit_npy, visit_names):
+    for visit_name in (visit_names):
+        path_visit = join(dir_visit, visit_name)
+        visit_table = pd.read_table(path_visit, header=None)
+        visit_array = visit2array(visit_table)
+        path_visit_npy = join(dir_visit_npy, visit_name.split('.')[0] + ".npy")
+        np.save(path_visit_npy, visit_array)
+
+def visits2npys(dir_visit, dir_visit_npy, num_works):
     '''将visit数据转换为npy文件'''
     
     # 初始化保存目录
@@ -271,14 +299,24 @@ def visits2npys(dir_visit, dir_visit_npy):
     else:
         return
     
-    visit_names = os.listdir(dir_visit)
+    visit_names_all = os.listdir(dir_visit)
     
-    for visit_name in tqdm(visit_names):
-        path_visit = join(dir_visit, visit_name)
-        visit_table = pd.read_table(path_visit, header=None)
-        visit_array = visit2array(visit_table)
-        path_visit_npy = join(dir_visit_npy, visit_name.split('.')[0] + ".npy")
-        np.save(path_visit_npy, visit_array)
+    # 将list分为num_works份
+    num_list = math.ceil(len(visit_names_all) / num_works)
+    list_of_groups = zip(*(iter(visit_names_all),) *num_list)
+    visit_names = [list(i) for i in list_of_groups]
+    count = len(visit_names_all) % num_list
+    visit_names.append(visit_names_all[-count:]) if count !=0 else visit_names
+    
+    # 开进程
+    p = []
+    for i in range(num_works):
+        p1 = mp.Process(target=test, args=(dir_visit, dir_visit_npy, visit_names[i]))
+        p.append(p1)
+    for pp in p:
+        pp.start()  
+    for pp in p:
+        pp.join()
 
 def visits2npy(dir_visit_npy, data_npy, get_ori=False):
     '''将visit数据转换为一个npy文件'''
@@ -457,7 +495,7 @@ if __name__ == '__main__':
 #    visits2npy(opt.dir_visit_npy, opt.data_npy, get_ori=True)
     
     # 生成测试集数据
-#    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test)
+    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test, num_works=10)
 #    testData2npy(opt.dir_img_test, opt.dir_visit_npy_test, opt.data_npy)
     
     time_elapsed = time.time() - since # 用时
