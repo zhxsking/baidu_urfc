@@ -82,22 +82,22 @@ if __name__ == '__main__':
 #    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
 #                                  batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
     
-    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
+    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt", aug=True)
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
-                            shuffle=True, num_workers=opt.workers, pin_memory=False)
+                            shuffle=True, num_workers=opt.workers, pin_memory=True)
     dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
     dataloader_val = DataLoader(dataset=dataset_val, batch_size=opt.batchsize,
-                                shuffle=False, num_workers=opt.workers, pin_memory=False)
+                                shuffle=False, num_workers=opt.workers, pin_memory=True)
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
-    net = mResNet18(pretrained=opt.pretrained).to(opt.device)
+    net = mSENet(pretrained=opt.pretrained).to(opt.device)
     loss_func = nn.CrossEntropyLoss().to(opt.device)
 #    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 2∗Tmax为周期，在一个周期内先下降，后上升
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1) # 动态改变lr
-#    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
+#    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1) # 动态改变lr
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-4, max_lr=1e-2, step_size_up=2000)
     
@@ -131,7 +131,7 @@ if __name__ == '__main__':
         loss_temp_train = Record()
         acc_temp_train = Record()
         net.train()
-        scheduler.step(epoch)
+#        scheduler.step(epoch)
         
         
         prefetcher = data_prefetcher(dataloader_train)
@@ -139,7 +139,12 @@ if __name__ == '__main__':
         cnt = 0
         while img is not None:
             cnt += 1
-
+            
+#            if cnt==1:
+#                torch.cuda.synchronize()
+#                since = time.time()
+                
+            
 #            torchvision.utils.save_image(img, join(save_path, r'epoch-{}-iter-{}.jpg'.format(epoch+1, cnt)))
             
             img = img.to(opt.device)
@@ -166,6 +171,12 @@ if __name__ == '__main__':
                   .format(cnt, len(dataloader_train), loss.item(), acc_tmp), end='\r')
             
             img, visit, out_gt = prefetcher.next()
+            
+#            if cnt==50:
+#                torch.cuda.synchronize()
+#                print(time.time() - since)
+#                sys.exit(0)
+            
         loss_list_train.append(loss_temp_train.avg)
         acc_list_train.append(acc_temp_train.avg)
         
@@ -174,7 +185,7 @@ if __name__ == '__main__':
         loss_list_val.append(loss_temp_val)
         acc_list_val.append(acc_temp_val)
         
-#        scheduler.step(acc_temp_val)
+        scheduler.step(acc_temp_val)
         
         # 更新最优模型
         if (epoch+1) > 0 and acc_temp_val > best_acc:

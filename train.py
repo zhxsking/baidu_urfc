@@ -82,7 +82,7 @@ if __name__ == '__main__':
 #    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
 #                                  batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
     
-    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
+    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt", aug=True)
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
                             shuffle=True, num_workers=opt.workers, pin_memory=True)
     dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
@@ -135,6 +135,10 @@ if __name__ == '__main__':
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
 #            torchvision.utils.save_image(img, join(save_path, r'epoch-{}-iter-{}.jpg'.format(epoch+1, cnt)))
             
+#            if cnt==1:
+#                torch.cuda.synchronize()
+#                since = time.time()
+            
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
@@ -157,6 +161,12 @@ if __name__ == '__main__':
             
             print('\rbatch {}/{} temporary loss: {:.4f} acc: {:.4f}'
                   .format(cnt, len(dataloader_train), loss.item(), acc_tmp), end='\r')
+            
+#            if cnt==50:
+#                torch.cuda.synchronize()
+#                print(time.time() - since)
+#                sys.exit(0)
+            
         loss_list_train.append(loss_temp_train.avg)
         acc_list_train.append(acc_temp_train.avg)
         
