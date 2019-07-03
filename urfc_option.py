@@ -10,17 +10,17 @@ class Option():
     def __init__(self):
         self.epochs = 20
         self.lr = 3e-3 # 3e-3
-        self.batchsize = 64
+        self.batchsize = 256
         self.weight_decay = 3e-2
         self.early_stop_num = 150 # acc在多少个epoch下都不提升就提前结束训练
-        self.workers = 0 # 4 多进程，可能会卡程序
+        self.workers = 1 # 4 多进程，可能会卡程序
         self.pretrained = True
         
         self.weight = torch.Tensor([0.66145, 0.81155, 0.81025, 0.99605, 0.8634, 0.812325, 0.812075, 0.934575, 0.928325])
         
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
-        self.num_train = 5000
+        self.num_train = 500
         
         self.dir_npy_suffix = "_npy_26_24_7"
 #        self.disk = r"E:\pic\URFC-baidu"

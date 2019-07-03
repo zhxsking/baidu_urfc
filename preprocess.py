@@ -491,11 +491,11 @@ if __name__ == '__main__':
     
     getSampleTxt(opt.dir_img, opt.dir_img_test, opt.num_train, val_balance=False)
 #    imgs2npy(opt.data_npy, get_ori=True)
-#    visits2npys(opt.dir_visit, opt.dir_visit_npy)
+#    visits2npys(opt.dir_visit, opt.dir_visit_npy, num_works=10)
 #    visits2npy(opt.dir_visit_npy, opt.data_npy, get_ori=True)
     
     # 生成测试集数据
-    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test, num_works=10)
+#    visits2npys(opt.dir_visit_test, opt.dir_visit_npy_test, num_works=10)
 #    testData2npy(opt.dir_img_test, opt.dir_visit_npy_test, opt.data_npy)
     
     time_elapsed = time.time() - since # 用时
