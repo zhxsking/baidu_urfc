@@ -147,9 +147,13 @@ if __name__ == '__main__':
 #    state = torch.load(r"checkpoint\best-cnn-sdnet-50-p.pkl", map_location=opt.device) # 实测0.6066
 #    net10.load_state_dict(state['net'])
     
-    net11 = MMNet().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-mmnet-6630.pkl", map_location=opt.device)
-    net11.load_state_dict(state['net'])
+#    net11 = MMNet().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-mmnet-6630.pkl", map_location=opt.device)
+#    net11.load_state_dict(state['net'])
+    
+    net12 = mSENet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-senet-6617.pkl", map_location=opt.device) # semi实测0.66134
+    net12.load_state_dict(state['net'])
     
 #    netm = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device) # 实测0.6447
 #    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device)
@@ -170,18 +174,20 @@ if __name__ == '__main__':
 #    dataloader_test = DataLoader(dataset=TensorDataset(imgs_test, visits_test),
 #                                batch_size=512, num_workers=opt.workers)
     
+    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
+    
     dataset_test = UrfcDataset(opt.dir_img_test, opt.dir_visit_npy_test, 
                                "data/test.txt", aug=False, mode='test')
     dataloader_test = DataLoader(dataset=dataset_test, batch_size=1024,
-                                shuffle=False, num_workers=opt.workers)
+                                shuffle=False, num_workers=opt.workers, pin_memory=True)
     
     # 预测
-    nets = [net11]
+    nets = [net12]
 #    nets = [net, net2, net3]
 #    nets = [net2, net3, net8, netm1]
 #     nets = [net2, net3, net4, net6, net8, netm, netm1]
-#    out_lab_np = predict(dataloader_test, opt.device, *nets)
-    out_lab_np = predict_TTA(dataloader_test, opt.device, *nets)
+    out_lab_np = predict(dataloader_test, opt.device, *nets)
+#    out_lab_np = predict_TTA(dataloader_test, opt.device, *nets)
     
     for i in range(1,10):
         print(np.sum(out_lab_np==i), end=' ')

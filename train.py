@@ -13,7 +13,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import metrics
 import torchvision
+from tqdm import tqdm
+from boxx import g
  
+import CLR as CLR
+import OneCycle as OneCycle
+
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101, mPNASNet, mNASNet, mPOLYNet, mXNet, MMNet
 from urfc_dataset import UrfcDataset
 from urfc_option import Option
@@ -39,13 +44,54 @@ def evalNet(net, loss_func, dataloader_val, device):
             acc_temp.update((float(torch.sum(preds == out_gt.data)) / len(out_gt)), len(out_gt))
     return loss_temp.avg, acc_temp.avg
 
+def update_lr(optimizer, lr):
+    for group in optimizer.param_groups:
+        group['lr'] = lr
+
+def update_mom(optimizer, mom):
+    for group in optimizer.param_groups:
+        group['momentum'] = mom
+
+def find_lr(dataloader_train, optimizer, net, device):
+    print('Find Best lr...')
+    clr = CLR.CLR(optimizer, len(dataloader_train))
+    
+    t = tqdm(dataloader_train, leave=False, total=len(dataloader_train))
+    running_loss = 0.
+    avg_beta = 0.98
+    net.train()
+    for i, (img, visit, out_gt) in enumerate(t):
+        
+        img = img.to(opt.device)
+        visit = visit.to(opt.device)
+        out_gt = out_gt.to(opt.device)
+        out, _ = net(img, visit)
+        
+        loss = loss_func(out, out_gt)
+        
+        running_loss = avg_beta * running_loss + (1-avg_beta) * loss.item()
+        smoothed_loss = running_loss / (1 - avg_beta**(i+1))
+        t.set_postfix(loss=smoothed_loss)
+        
+        lr = clr.calc_lr(smoothed_loss)
+        if lr == -1 :
+            break
+        update_lr(optimizer, lr)
+        
+        # compute gradient and do SGD step
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    clr.plot()
+    print('best lr: {:.4f}'.format(clr.lrs[np.argmin(np.array(clr.losses))]))
+    g() # 保存所有临时变量
 
 if __name__ == '__main__':
     __spec__ = None
     opt = Option()
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
-    msg = '备注：'
+    msg = '备注：mSENet'
     print(msg)
     log.write(msg)
 
@@ -92,19 +138,26 @@ if __name__ == '__main__':
     # 定义网络及其他
 #    net = CNN().to(opt.device)
     net = mSENet(pretrained=opt.pretrained).to(opt.device)
+    # 冻结层
+#    for count, (name, param) in enumerate(net.named_parameters(), 1):
+#        if 'layer' in name:
+#            param.requires_grad = False
+    
     loss_func = nn.CrossEntropyLoss().to(opt.device)
 #    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 2∗Tmax为周期，在一个周期内先下降，后上升
 #    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1) # 动态改变lr
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
+#    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
-#    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-4, max_lr=1e-2, step_size_up=2000)
+#    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-5, max_lr=1, step_size_up=3000)
     
-    # 冻结层
-#    for count, (name, param) in enumerate(net.named_parameters(), 1):
-#        if 'layer' in name:
-#            param.requires_grad = False
+#    find_lr(dataloader_train, optimizer, net, opt.device) # 0.18
+    
+    onecycle = OneCycle.OneCycle(int(len(dataset_train) * opt.epochs / opt.batchsize), 1,
+                                 momentum_vals=(0.95, 0.8))
+    
+    
     
     # 初始化
     since = time.time() # 记录时间
@@ -119,9 +172,7 @@ if __name__ == '__main__':
     best_loss = 99.0
     best_epoch_loss = 1
     best_model_loss = copy.deepcopy(net.state_dict())
-#    loss_list_cy = []
-#    lr_list_cy = []
-    
+
     # 训练
     print('Start Training...')
     
@@ -139,6 +190,10 @@ if __name__ == '__main__':
 #                torch.cuda.synchronize()
 #                since = time.time()
             
+            lr, mom = onecycle.calc()
+            update_lr(optimizer, lr)
+            update_mom(optimizer, mom)
+            
             img = img.to(opt.device)
             visit = visit.to(opt.device)
             out_gt = out_gt.to(opt.device)
@@ -148,11 +203,6 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            
-            # cyclic lr
-#            scheduler.step()
-#            loss_list_cy.append(loss.item())
-#            lr_list_cy.append(optimizer.param_groups[0]['lr'])
             
             _, preds = torch.max(out, 1)
             loss_temp_train.update(loss.item(), img.shape[0])
@@ -175,7 +225,7 @@ if __name__ == '__main__':
         loss_list_val.append(loss_temp_val)
         acc_list_val.append(acc_temp_val)
         
-        scheduler.step(acc_temp_val)
+#        scheduler.step(acc_temp_val)
         
         # 更新最优模型
         if (epoch+1) > 0 and acc_temp_val > best_acc:
