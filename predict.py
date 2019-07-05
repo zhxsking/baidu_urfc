@@ -40,6 +40,7 @@ def predict(dataloader_test, device, *nets):
 #                    out_tta_tmp = out_tta_tmp + 2*torch.mul(out_tta_tmp, torch.le(out_tta_tmp,0).float())
                     
                     out_tta_tmp = sm(out_tta_tmp)
+                    
                     if (i==0):
                         out_tta = out_tta_tmp
                         out_tta_o = out_tta_tmp
@@ -60,6 +61,7 @@ def predict(dataloader_test, device, *nets):
         for i in range(len(labs_out[j])):
             labs_out_np.append(labs_out[j][i])            
     labs_out_np = np.array(labs_out_np)
+    g()
     return labs_out_np
     
 
@@ -69,79 +71,30 @@ if __name__ == '__main__':
     
     # 加载模型
     print('Loading Model...')
+    net1 = mSENet().to(opt.device) # 2tta6652 4tta6666 7tta6664
+    state = torch.load(r"checkpoint\best-cnn-senet-6617.pkl", map_location=opt.device) # semi实测0.66134 no tta
+    net1.load_state_dict(state['net'])
     
-#    net1 = mSDNet50().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-50.pkl", map_location=opt.device) # 实测0.6394
-#    net1.load_state_dict(state['net'])
-    
-#    net2 = mSDNet101().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device) # 实测0.6526
-#    net2.load_state_dict(state['net'])
-#    
-#    net3 = MMNet().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-mmnet.pkl", map_location=opt.device) # 实测0.6529
-#    net3.load_state_dict(state['net'])
-    
-#    net4 = MMNet().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-mmnet-实测6464.pkl", map_location=opt.device)
-#    net4.load_state_dict(state['net'])
-    
-#    net5 = mSDNet50().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-50-实测6264.pkl", map_location=opt.device)
-#    net5.load_state_dict(state['net'])
-    
-#    net6 = mSDNet101().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-101-64.pkl", map_location=opt.device) # 实测0.6379
-#    net6.load_state_dict(state['net'])
-    
-#    net7 = mSDNet50().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-50-59.pkl", map_location=opt.device) # 实测0.6394
-#    net7.load_state_dict(state['net'])
-    
-#    net8 = MMNet().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-mmnet-59.pkl", map_location=opt.device) # 实测0.6531
-#    net8.load_state_dict(state['net'])
-    
-#    net9 = mSDNet101().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-101-63.pkl", map_location=opt.device) # tta更低 实测0.6305
-#    net9.load_state_dict(state['net'])
-    
-#    net10 = mSDNet50_p().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-50-p.pkl", map_location=opt.device) # 实测0.6066
-#    net10.load_state_dict(state['net'])
-    
-    net11 = MMNet().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-mmnet-6630.pkl", map_location=opt.device) # semi实测0.56216 no tta
-    net11.load_state_dict(state['net'])
-    
-#    net12 = mSENet().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-senet-6617.pkl", map_location=opt.device) # semi实测0.66134 no tta
-#    net12.load_state_dict(state['net'])
-    
-#    netm = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device) # 实测0.6447
-#    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device)
-#    netm.load_state_dict(state['state_dict'])
-    
-#    netm1 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device) # 实测0.6688
-#    state = torch.load(r"checkpoint\best-cnn-mutimodel.pkl", map_location=opt.device)
-#    netm1.load_state_dict(state['net'])
-    
+    net2 = mSENet().to(opt.device) # 2tta6397 4tta6406 7tta6408
+    state = torch.load(r"checkpoint\best-cnn-senet-6386.pkl", map_location=opt.device)
+    net2.load_state_dict(state['net'])
     
     # 加载数据
     print('Loading Data...')  
     dataset_test = UrfcDataset(opt.dir_img_test, opt.dir_visit_npy_test, 
                                "data/test.txt", aug=False, mode='test',
-                               tta=False)
-    dataloader_test = DataLoader(dataset=dataset_test, batch_size=256,
+                               tta=True)
+    dataloader_test = DataLoader(dataset=dataset_test, batch_size=1024,
                                 shuffle=False, num_workers=opt.workers, pin_memory=True)
     
     # 预测
-    nets = [net11]
-#    nets = [net, net2, net3]
+#    nets = [net1]
+    nets = [net1, net2]
 #    nets = [net2, net3, net8, netm1]
 #     nets = [net2, net3, net4, net6, net8, netm, netm1]
     out_lab_np = predict(dataloader_test, opt.device, *nets)
     
+    print('29981 22833 12971 1717 4099 15438 5429 3266 4266')
     for i in range(1,10):
         print(np.sum(out_lab_np==i), end=' ')
     

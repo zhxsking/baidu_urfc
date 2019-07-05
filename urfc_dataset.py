@@ -62,10 +62,16 @@ class UrfcDataset(Dataset):
 #        img = img_process(img)
         
         if self.tta:
-            img_o = self.transform(())(img)
-            img_h = self.transform(('h'))(img)
-            img_v = self.transform(('v'))(img)
-            img = (img_o, img_h, img_v)
+            img = [
+                self.transform(())(img),
+                self.transform(('h',))(img),
+                self.transform(('v',))(img),
+                self.transform(('n90',))(img),
+                self.transform(('p90',))(img),
+#                self.transform(('h','v'))(img),
+#                self.transform(('h','n90'))(img),
+#                self.transform(('v','n90'))(img),
+            ]
         else:
             img = self.transform(())(img)
             
@@ -100,38 +106,6 @@ class UrfcDataset(Dataset):
                     iaa.AverageBlur(k=(2, 7)), # blur image using local means with kernel sizes between 2 and 7
                     iaa.MedianBlur(k=(3, 11)), # blur image using local medians with kernel sizes between 2 and 7
                 ]),
-#            iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)), # sharpen images
-#            
-#            iaa.Fliplr(0.5),
-#            iaa.Flipud(0.5),
-#            sometimes(iaa.Affine(
-#                scale={"x": (0.9, 1.1), "y": (0.9, 1.1)},
-#                translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-#                rotate=(-15, 15),
-#                shear=(-16, 16),
-#                order=[0, 1],
-#            )),
-#            iaa.SomeOf((0, 4), [
-#                iaa.OneOf([
-#                    iaa.GaussianBlur((0, 2)),
-#                    iaa.AverageBlur(k=(2, 5)),
-#                    iaa.MedianBlur(k=(3, 5)),
-#                ]),
-#                iaa.Sharpen(alpha=(0, 0.5), lightness=(0.8, 1.2)),
-#                sometimes(iaa.OneOf([
-#                    iaa.EdgeDetect(alpha=(0, 0.7)),
-#                    iaa.DirectedEdgeDetect(alpha=(0, 0.7), direction=(0.0, 1.0)),
-#                ])),
-#                iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
-#                iaa.Dropout((0.01, 0.1), per_channel=0.5),
-#                iaa.OneOf([
-#                    iaa.Fog(),
-#                    iaa.Clouds(),
-#                ]),
-#                iaa.Add((-10, 10), per_channel=0.5),
-#                iaa.Multiply((0.7, 1.3), per_channel=0.5),
-#            ], random_order=True)
-            
             ], random_order=True)
 
         image_aug = augment_img.augment_image(image)
@@ -144,13 +118,17 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     
     opt = Option()
-    dataset = UrfcDataset(opt.dir_img_test, opt.dir_visit_npy_test, "data/test.txt", aug=False, mode='test', tta=False)
-#    dataset = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
+    dataset = UrfcDataset(opt.dir_img_test, opt.dir_visit_npy_test, "data/test.txt",
+                          aug=False, mode='test', tta=True)
     dataloader = DataLoader(dataset=dataset, batch_size=3, shuffle=False)
     
     for cnt, (img, visit, lab) in enumerate(dataloader, 1):
         print(lab)
-        img_show = img.detach().numpy()[0][0]
+        if isinstance(img, list):
+            img = img
+        else:
+            img = (img,)
+        img_show = img[0].detach().numpy()[0][0]
         visit_show = visit.detach().numpy()[0][0]
         
         plt.figure()

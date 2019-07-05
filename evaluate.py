@@ -69,15 +69,16 @@ def eval_net(loss_func, dataloader_val, device, *nets):
                     
                     out_tta_tmp = sm(out_tta_tmp)
                     
+                    # 投票法，每行最大值赋1，其他为0
+#                    mat_tmp = torch.max(out_tta_tmp, 1)[0].repeat(out_tta_tmp.shape[1],1).transpose(1,0)
+#                    out_tta_tmp = (mat_tmp == out_tta_tmp).float()
+                    
                     out_mat_h.append(out_tta_tmp.cpu().numpy())
                     
                     if (i==0):
                         out_tta = out_tta_tmp
-                        out_tta_o = out_tta_tmp
                     else:
                         out_tta = out_tta + out_tta_tmp
-#                out_tta = out_tta - out_tta_o # 减去第一份原始图像的输出
-#                out_tmp = out_tta_o * (i+1) + out_tta
                 
                 out_tmp = out_tta
                 
@@ -121,41 +122,18 @@ if __name__ == '__main__':
     print('Loading Model...')
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
-#    net0 = mSDNet50_p().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-50-p.pkl", map_location=opt.device)
-#    net0.load_state_dict(state['net'])
-    
-#    net1 = mSDNet50().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-50-59.pkl", map_location=opt.device)
-#    net1.load_state_dict(state['net'])
-    
-#    net2 = mSDNet101().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device)
-#    net2.load_state_dict(state['net'])
-#    
-#    net3 = MMNet().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-mmnet-6630.pkl", map_location=opt.device)
-#    net3.load_state_dict(state['net'])
-#    
-#    net4 = mSDNet101().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-sdnet-101.pkl", map_location=opt.device)
-#    net4.load_state_dict(state['net'])
-    
-    net5 = mSENet().to(opt.device)
+    net1 = mSENet().to(opt.device) # 2tta6652 4tta6666 7tta6664
     state = torch.load(r"checkpoint\best-cnn-senet-6617.pkl", map_location=opt.device)
-    net5.load_state_dict(state['net'])
+    net1.load_state_dict(state['net'])
     
-#    netm = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
-#    state = torch.load(r"checkpoint\multimodal_fold_0_model_best_loss.pth.tar", map_location=opt.device)2
-#    netm.load_state_dict(state['state_dict'])
-#    
-#    netm1 = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn-mutimodel.pkl", map_location=opt.device)
-#    netm1.load_state_dict(state['net'])
+    net2 = mSENet().to(opt.device) # 2tta6397 4tta6406 7tta6408
+    state = torch.load(r"checkpoint\best-cnn-senet-6386.pkl", map_location=opt.device)
+    net2.load_state_dict(state['net'])
+    
     
     #%% 验证原始数据
-#    nets = [net0]
-    nets = [net5]
+    nets = [net1]
+#    nets = [net1, net2]
     loss, acc, labs_ori_np, labs_out_np, out_mat = eval_net(loss_func, dataloader_val, opt.device, *nets)
     
     #%% 绘制混淆矩阵, 计算acc
@@ -167,27 +145,27 @@ if __name__ == '__main__':
     print('val acc all {:.4f}'.format(acc_all_val))
     
     #%%     
-    t = out_mat[0]
-    for i in range(1, len(out_mat)):
-        tmp = out_mat[i]
-        t = np.r_[t, tmp]
-    
-    
-    from catboost import CatBoostClassifier, Pool
-
-    model = CatBoostClassifier(
-            learning_rate = 0.2,
-            iterations = 1000,
-            eval_metric = 'Accuracy',
-            random_seed = 42,
-            logging_level = 'Verbose',
-            use_best_model = True,
-            task_type = 'GPU',
-            )
-    model.fit(t, labs_ori_np)
-    model.save_model(r"checkpoint\catboost_model.dump")
-#    model = CatBoostClassifier()
-#    model.load_model(r"checkpoint\catboost_model.dump")
+#    t = out_mat[0]
+#    for i in range(1, len(out_mat)):
+#        tmp = out_mat[i]
+#        t = np.r_[t, tmp]
+#    
+#    
+#    from catboost import CatBoostClassifier, Pool
+#
+#    model = CatBoostClassifier(
+#            learning_rate = 0.2,
+#            iterations = 1000,
+#            eval_metric = 'Accuracy',
+#            random_seed = 42,
+#            logging_level = 'Verbose',
+#            use_best_model = True,
+#            task_type = 'GPU',
+#            )
+#    model.fit(t, labs_ori_np)
+#    model.save_model(r"checkpoint\catboost_model.dump")
+##    model = CatBoostClassifier()
+##    model.load_model(r"checkpoint\catboost_model.dump")
     
     
     
