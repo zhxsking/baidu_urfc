@@ -113,8 +113,8 @@ if __name__ == '__main__':
     
     # 加载数据
     print('Loading Data...')
-    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False, tta=False)
-    dataloader_val = DataLoader(dataset=dataset_val, batch_size=256,
+    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False, tta=True)
+    dataloader_val = DataLoader(dataset=dataset_val, batch_size=1024,
                                 shuffle=False, num_workers=opt.workers, pin_memory=True)
     
     # 加载模型
@@ -166,18 +166,43 @@ if __name__ == '__main__':
     print('val acc: {:.4f}, loss: {:.4f}'.format(acc, loss))
     print('val acc all {:.4f}'.format(acc_all_val))
     
-    #%% 
-#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt", aug=False, tta=True)
-#    dataloader_train = DataLoader(dataset=dataset_train, batch_size=256,
-#                                shuffle=False, num_workers=opt.workers, pin_memory=True)
-#    
-#    nets = [net3]
-#    loss, acc, labs_ori_np, labs_out_np, out_mat = eval_net(loss_func, dataloader_train, opt.device, *nets)
-#    
-#    t = out_mat[0]
-#    for i in range(1, len(out_mat)):
-#        tmp = out_mat[i]
-#        t = np.r_[t, tmp]
+    #%%     
+    t = out_mat[0]
+    for i in range(1, len(out_mat)):
+        tmp = out_mat[i]
+        t = np.r_[t, tmp]
+    
+    
+    from catboost import CatBoostClassifier, Pool
 
-
+    model = CatBoostClassifier(
+            learning_rate = 0.2,
+            iterations = 1000,
+            eval_metric = 'Accuracy',
+            random_seed = 42,
+            logging_level = 'Verbose',
+            use_best_model = True,
+            task_type = 'GPU',
+            )
+    model.fit(t, labs_ori_np)
+    model.save_model(r"checkpoint\catboost_model.dump")
+#    model = CatBoostClassifier()
+#    model.load_model(r"checkpoint\catboost_model.dump")
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     

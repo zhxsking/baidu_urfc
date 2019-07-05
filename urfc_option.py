@@ -8,7 +8,7 @@ import imgaug as ia
 class Option():
     """定义网络的参数及其他"""
     def __init__(self):
-        self.epochs = 5
+        self.epochs = 20
         self.lr = 3e-3 # 3e-3
         self.batchsize = 256
         self.weight_decay = 1e-4
