@@ -2,15 +2,13 @@
 
 import torch
 import torch.nn as nn
-from torch.utils.data import TensorDataset, DataLoader
-import torchvision
-from os.path import join
+from torch.utils.data import DataLoader
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import metrics
-import torchvision.transforms as transforms
 import sys
 from tqdm import tqdm
+from boxx import g
 
 from multimodal import MultiModalNet
 
@@ -41,72 +39,27 @@ def plotConfusionMatrix(cm, normalize=False, classes=None, cmap=plt.cm.Blues):
     plt.xlabel('Prediction')
     plt.tight_layout()
     plt.show()
-    
-def evalNet(loss_func, dataloader_val, device, *nets):
+
+def eval_net(loss_func, dataloader_val, device, *nets):
     """用验证集评判网络性能"""
     sm = nn.Softmax(dim=1)
     acc_temp = Record()
     loss_temp = Record()
     labs_ori, labs_out = [], []
+    out_mat = []
     with torch.no_grad():
         for (img, visit, out_gt) in tqdm(dataloader_val):
-            img = img.to(device)
+            if isinstance(img, list):
+                img_tta = img
+            else:
+                img_tta = (img,)
+
             visit = visit.to(device)
             out_gt = out_gt.to(device)
             
+            out_mat_h = []
             for cnt, net in enumerate(nets):
                 net.eval()
-                out_tmp = net(img, visit)
-                
-                if isinstance(out_tmp, tuple):
-                    out_tmp = out_tmp[0]
-                
-                out_tmp = sm(out_tmp)
-
-                if (cnt==0):
-                    out = out_tmp
-                else:
-                    out = out + out_tmp
-            
-            loss = loss_func(out, out_gt)
-            _, preds = torch.max(out, 1)
-            
-            loss_temp.update(loss.item(), img.shape[0])
-            acc_temp.update((float(torch.sum(preds == out_gt.data)) / len(out_gt)), len(out_gt))
-            labs_ori.append(out_gt.cpu().numpy())
-            labs_out.append(preds.cpu().numpy().flatten().astype(np.uint8))
-    labs_ori_np = []
-    labs_out_np = []
-    for j in range(len(labs_ori)):
-        for i in range(len(labs_ori[j])):
-            labs_ori_np.append(labs_ori[j][i])
-            labs_out_np.append(labs_out[j][i])            
-    labs_ori_np = np.array(labs_ori_np)
-    labs_out_np = np.array(labs_out_np)
-    return loss_temp.avg, acc_temp.avg, labs_ori_np, labs_out_np
-
-def evalNet_TTA(loss_func, dataloader_val, device, *nets):
-    """用验证集评判网络性能, TTA"""
-    sm = nn.Softmax(dim=1)
-    acc_temp = Record()
-    loss_temp = Record()
-    labs_ori, labs_out = [], []
-    with torch.no_grad():
-        for (img_o, visit, out_gt) in tqdm(dataloader_val):
-            img_tta = get_tta_batch(img_o) # 得到tta之后的图像
-            
-            img_o = img_o.to(device)
-            visit = visit.to(device)
-            out_gt = out_gt.to(device)
-            
-            for cnt, net in enumerate(nets):
-                net.eval()
-                out_o = net(img_o, visit)
-                
-                if isinstance(out_o, tuple):
-                    out_o = out_o[0]
-                
-                out_o = sm(out_o)
                 
                 for i in range(len(img_tta)):
                     out_tta_tmp = net(img_tta[i].to(device), visit)
@@ -115,13 +68,19 @@ def evalNet_TTA(loss_func, dataloader_val, device, *nets):
                         out_tta_tmp = out_tta_tmp[0]
                     
                     out_tta_tmp = sm(out_tta_tmp)
+                    
+                    out_mat_h.append(out_tta_tmp.cpu().numpy())
+                    
                     if (i==0):
                         out_tta = out_tta_tmp
+                        out_tta_o = out_tta_tmp
                     else:
                         out_tta = out_tta + out_tta_tmp
+#                out_tta = out_tta - out_tta_o # 减去第一份原始图像的输出
+#                out_tmp = out_tta_o * (i+1) + out_tta
                 
-                out_tmp = out_o * (i+1) + out_tta
-
+                out_tmp = out_tta
+                
                 if (cnt==0):
                     out = out_tmp
                 else:
@@ -130,10 +89,12 @@ def evalNet_TTA(loss_func, dataloader_val, device, *nets):
             loss = loss_func(out, out_gt)
             _, preds = torch.max(out, 1)
             
-            loss_temp.update(loss.item(), img_o.shape[0])
+            loss_temp.update(loss.item(), img_tta[0].shape[0])
             acc_temp.update((float(torch.sum(preds == out_gt.data)) / len(out_gt)), len(out_gt))
             labs_ori.append(out_gt.cpu().numpy())
             labs_out.append(preds.cpu().numpy().flatten().astype(np.uint8))
+            tt = np.array(out_mat_h).transpose((1,0,2)).reshape((len(out_gt), -1))
+            out_mat.append(tt)
     labs_ori_np = []
     labs_out_np = []
     for j in range(len(labs_ori)):
@@ -142,7 +103,8 @@ def evalNet_TTA(loss_func, dataloader_val, device, *nets):
             labs_out_np.append(labs_out[j][i])            
     labs_ori_np = np.array(labs_ori_np)
     labs_out_np = np.array(labs_out_np)
-    return loss_temp.avg, acc_temp.avg, labs_ori_np, labs_out_np
+    g()
+    return loss_temp.avg, acc_temp.avg, labs_ori_np, labs_out_np, out_mat
 
 
 if __name__ == '__main__':
@@ -151,20 +113,8 @@ if __name__ == '__main__':
     
     # 加载数据
     print('Loading Data...')
-#    imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
-#    visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
-#    labs_val = np.load(join(opt.data_npy, "val-label.npy"))
-#    
-#    imgs_val = imgProc(imgs_val, opt.means, opt.stds)
-#    visits_val = torch.FloatTensor(visits_val.transpose(0,3,1,2))
-#    labs_val = torch.LongTensor(labs_val) - 1
-#    
-#    dataset_val = TensorDataset(imgs_val, visits_val, labs_val)
-#    dataloader_val = DataLoader(dataset=dataset_val, shuffle=False, 
-#                                batch_size=256, num_workers=opt.workers)
-    
-    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
-    dataloader_val = DataLoader(dataset=dataset_val, batch_size=512,
+    dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False, tta=False)
+    dataloader_val = DataLoader(dataset=dataset_val, batch_size=256,
                                 shuffle=False, num_workers=opt.workers, pin_memory=True)
     
     # 加载模型
@@ -206,81 +156,28 @@ if __name__ == '__main__':
     #%% 验证原始数据
 #    nets = [net0]
     nets = [net5]
-    loss, acc, labs_ori_np, labs_out_np = evalNet(loss_func, dataloader_val, opt.device, *nets)
-#    loss, acc, labs_ori_np, labs_out_np = evalNet_TTA(loss_func, dataloader_val, opt.device, *nets)
+    loss, acc, labs_ori_np, labs_out_np, out_mat = eval_net(loss_func, dataloader_val, opt.device, *nets)
     
-    #%%
-#    device = opt.device
-#    sm = nn.Softmax(dim=1)  # nn.functional.normalize
-#    acc_temp = Record()
-#    loss_temp = Record()
-#    labs_ori, labs_out = [], []
-#    with torch.no_grad():
-#        for (img_o, visit, out_gt) in tqdm(dataloader_val):
-#            img_tta = get_tta_batch(img_o)
-#            
-#            img_o = img_o.to(device)
-#            visit = visit.to(device)
-#            out_gt = out_gt.to(device)
-#            
-#            for cnt, net in enumerate(nets):
-#                net.eval()
-#                out_o = net(img_o, visit)
-#                
-#                if isinstance(out_o, tuple):
-#                    out_o = out_o[0]
-#                
-##                out_o = out_o + 2*torch.mul(out_o, torch.le(out_o,0).float()) # 负的更负
-#                
-#                out_o = sm(out_o)
-#                
-#                for i in range(len(img_tta)):
-#                    out_tta_tmp = net(img_tta[i].to(device), visit)
-#                    
-#                    if isinstance(out_tta_tmp, tuple):
-#                        out_tta_tmp = out_tta_tmp[0]
-#                    
-##                    out_tta_tmp = out_tta_tmp + 2*torch.mul(out_tta_tmp, torch.le(out_tta_tmp,0).float())
-#                    
-#                    out_tta_tmp = sm(out_tta_tmp)
-#                    
-#                    if (i==0):
-#                        out_tta = out_tta_tmp
-#                    else:
-#                        out_tta = out_tta + out_tta_tmp
-#                
-#                out_tmp = out_o * 7 + out_tta
-#
-#                if (cnt==0):
-#                    out = out_tmp
-#                else:
-#                    out = out + out_tmp
-#            
-#            loss = loss_func(out, out_gt)
-#            _, preds = torch.max(out, 1)
-#            
-#            loss_temp.update(loss.item(), img_o.shape[0])
-#            acc_temp.update((float(torch.sum(preds == out_gt.data)) / len(out_gt)), len(out_gt))
-#            labs_ori.append(out_gt.cpu().numpy())
-#            labs_out.append(preds.cpu().numpy().flatten().astype(np.uint8))
-#    labs_ori_np = []
-#    labs_out_np = []
-#    for j in range(len(labs_ori)):
-#        for i in range(len(labs_ori[j])):
-#            labs_ori_np.append(labs_ori[j][i])
-#            labs_out_np.append(labs_out[j][i])            
-#    labs_ori_np = np.array(labs_ori_np)
-#    labs_out_np = np.array(labs_out_np)
-#    loss, acc =  loss_temp.avg, acc_temp.avg
-
     #%% 绘制混淆矩阵, 计算acc
     cm = metrics.confusion_matrix(labs_ori_np, labs_out_np)
     acc_all_val = metrics.accuracy_score(labs_ori_np, labs_out_np)
     class_names = ['001', '002', '003', '004', '005', '006', '007', '008', '009']
     plotConfusionMatrix(cm, normalize=True, classes = class_names)
-    print('val acc {:.4f}'.format(acc_all_val))
+    print('val acc: {:.4f}, loss: {:.4f}'.format(acc, loss))
+    print('val acc all {:.4f}'.format(acc_all_val))
     
-    
+    #%% 
+#    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt", aug=False, tta=True)
+#    dataloader_train = DataLoader(dataset=dataset_train, batch_size=256,
+#                                shuffle=False, num_workers=opt.workers, pin_memory=True)
+#    
+#    nets = [net3]
+#    loss, acc, labs_ori_np, labs_out_np, out_mat = eval_net(loss_func, dataloader_train, opt.device, *nets)
+#    
+#    t = out_mat[0]
+#    for i in range(1, len(out_mat)):
+#        tmp = out_mat[i]
+#        t = np.r_[t, tmp]
 
 
     

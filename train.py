@@ -150,12 +150,14 @@ if __name__ == '__main__':
 #    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1) # 动态改变lr
 #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
-#    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-5, max_lr=1, step_size_up=3000)
+    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-3, max_lr=1, 
+                                                  step_size_up=4000, max_momentum=0.95,
+                                                  mode='triangular2')
     
 #    find_lr(dataloader_train, optimizer, net, opt.device) # 0.18
     
-    onecycle = OneCycle.OneCycle(int(len(dataset_train) * opt.epochs / opt.batchsize), 1,
-                                 momentum_vals=(0.95, 0.8))
+#    onecycle = OneCycle.OneCycle(int(len(dataset_train) * opt.epochs / opt.batchsize), 1,
+#                                 momentum_vals=(0.95, 0.8))
     
     
     
@@ -190,9 +192,11 @@ if __name__ == '__main__':
 #                torch.cuda.synchronize()
 #                since = time.time()
             
-            lr, mom = onecycle.calc()
-            update_lr(optimizer, lr)
-            update_mom(optimizer, mom)
+            scheduler.step()
+            
+#            lr, mom = onecycle.calc()
+#            update_lr(optimizer, lr)
+#            update_mom(optimizer, mom)
             
             img = img.to(opt.device)
             visit = visit.to(opt.device)

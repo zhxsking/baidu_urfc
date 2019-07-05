@@ -14,22 +14,25 @@ from linear_p import linear_p
 
 
 class UrfcDataset(Dataset):
-    def __init__(self, dir_img, dir_visit, path_txt, aug=True, mode='train'):
+    def __init__(self, dir_img, dir_visit, path_txt, aug=True, mode='train', tta=False):
         super().__init__()
         self.dir_img = dir_img
         self.dir_visit = dir_visit
         self.aug = aug
         self.mode = mode
-        
+        self.tta = tta
         self.data_list = list(pd.read_csv(path_txt, header=None)[0])
-#        self.data_names = [a.split('\\')[-1] for a in self.data_list]
+        
+        # 定义操作表
+        self.tfs_lib = {
+            'h': transforms.RandomHorizontalFlip(1), # 水平翻转
+            'v': transforms.RandomVerticalFlip(1), # 上下翻转
+            'n90': transforms.RandomRotation((-90,-90)), # 顺时针旋转90度
+            'p90': transforms.RandomRotation((90,90)), # 逆时针旋转90度
+        }
         
     def __getitem__(self, index):
-#        label_str = self.data_names[index][7:10]
-        
-        
         img = plt.imread(join(self.data_list[index] + ".jpg"))
-#        visit = np.load(join(self.dir_visit, self.data_names[index] + ".npy"))
         visit = np.load(join(self.dir_visit, self.data_list[index].split('\\')[-1] + ".npy"))
         
         if self.mode == 'train':
@@ -50,20 +53,36 @@ class UrfcDataset(Dataset):
         # 标准化
 #        means = (0.4553296, 0.52905685, 0.6211398)
 #        stds =(0.14767659, 0.13119018, 0.1192783)
-        img_process = transforms.Compose([
-                transforms.ToPILImage(),
-                transforms.ToTensor(),
-#                transforms.Normalize(means, stds),
-#                transforms.Lambda(subMean),
-                ])
-        img = img_process(img)
+#        img_process = transforms.Compose([
+#                transforms.ToPILImage(),
+#                transforms.ToTensor(),
+##                transforms.Normalize(means, stds),
+##                transforms.Lambda(subMean),
+#                ])
+#        img = img_process(img)
         
+        if self.tta:
+            img_o = self.transform(())(img)
+            img_h = self.transform(('h'))(img)
+            img_v = self.transform(('v'))(img)
+            img = (img_o, img_h, img_v)
+        else:
+            img = self.transform(())(img)
+            
         visit = transforms.ToTensor()(visit)
         
         return img, visit, lab
     
     def __len__(self):
         return len(self.data_list)
+    
+    def transform(self, tfs_str):
+        tfs = []
+        tfs.append(transforms.ToPILImage())
+        for tf in tfs_str:
+            tfs.append(self.tfs_lib[tf])
+        tfs.append(transforms.ToTensor())
+        return transforms.Compose(tfs)
     
     def augumentor(self,image):
 #        sometimes = lambda aug: iaa.Sometimes(0.5, aug)
@@ -125,7 +144,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     
     opt = Option()
-    dataset = UrfcDataset(opt.dir_img_test, opt.dir_visit_npy_test, "data/test.txt", aug=False, mode='test')
+    dataset = UrfcDataset(opt.dir_img_test, opt.dir_visit_npy_test, "data/test.txt", aug=False, mode='test', tta=False)
 #    dataset = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
     dataloader = DataLoader(dataset=dataset, batch_size=3, shuffle=False)
     

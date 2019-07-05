@@ -13,7 +13,7 @@ class Option():
         self.batchsize = 256
         self.weight_decay = 1e-4
         self.early_stop_num = 150 # acc在多少个epoch下都不提升就提前结束训练
-        self.workers = 4 # 4 多进程，可能会卡程序
+        self.workers = 4 # 1 4 多进程，可能会卡程序
         self.pretrained = True
         
         self.weight = torch.Tensor([0.66145, 0.81155, 0.81025, 0.99605, 0.8634, 0.812325, 0.812075, 0.934575, 0.928325])
@@ -43,6 +43,7 @@ class Option():
         torch.manual_seed(seed)
         torch.cuda.manual_seed(seed)
         torch.backends.cudnn.deterministic = True
+#        torch.backends.cudnn.benchmark = True
         torch.cuda.empty_cache()
 
         
