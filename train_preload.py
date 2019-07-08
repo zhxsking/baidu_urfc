@@ -82,7 +82,7 @@ if __name__ == '__main__':
 #    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
 #                                  batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
     
-    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt", aug=True)
+    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
                             shuffle=True, num_workers=opt.workers, pin_memory=True)
     dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)

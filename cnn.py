@@ -124,7 +124,8 @@ class mResNet18(nn.Module):
 class mResNet(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
-        mdl = models.resnext101_32x8d(pretrained=pretrained)
+#        mdl = models.resnext101_32x8d(pretrained=pretrained)
+        mdl = models.resnext50_32x4d(pretrained=pretrained)
         
         self.conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
@@ -151,6 +152,7 @@ class mResNet(nn.Module):
         
     def forward(self, x_img, x_visit):
         # N,7,26,24整型为N,1,56,78
+        x_visit = x_visit.permute(0,2,1,3)
         x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
         # pad为N,1,100,100
         x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
@@ -707,13 +709,13 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = mSDNet101(pretrained=False).to(device)
+    net = MMNet(pretrained=False).to(device)
 #    net = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
     
-    bs = 1
+    bs = 128
     test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
     test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
 

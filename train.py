@@ -91,7 +91,7 @@ if __name__ == '__main__':
     opt = Option()
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
-    msg = '备注：mSENet'
+    msg = '备注：MMNet 6000'
     print(msg)
     log.write(msg)
 
@@ -128,7 +128,7 @@ if __name__ == '__main__':
 #    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
 #                                  batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
     
-    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt", aug=True)
+    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
                             shuffle=True, num_workers=opt.workers, pin_memory=True)
     dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
-    net = mSENet(pretrained=opt.pretrained).to(opt.device)
+    net = MMNet(pretrained=opt.pretrained).to(opt.device)
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
 #        if 'layer' in name:
@@ -148,11 +148,11 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 2∗Tmax为周期，在一个周期内先下降，后上升
 #    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1) # 动态改变lr
-#    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
-    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-3, max_lr=0.1, 
-                                                  step_size_up=4000, max_momentum=0.95,
-                                                  mode='triangular2')
+#    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-3, max_lr=0.1, 
+#                                                  step_size_up=4000, max_momentum=0.95,
+#                                                  mode='triangular2')
     
 #    find_lr(dataloader_train, optimizer, net, opt.device) # 0.18
     
@@ -192,7 +192,7 @@ if __name__ == '__main__':
 #                torch.cuda.synchronize()
 #                since = time.time()
             
-            scheduler.step()
+#            scheduler.step()
             
 #            lr, mom = onecycle.calc()
 #            update_lr(optimizer, lr)
@@ -229,7 +229,7 @@ if __name__ == '__main__':
         loss_list_val.append(loss_temp_val)
         acc_list_val.append(acc_temp_val)
         
-#        scheduler.step(acc_temp_val)
+        scheduler.step(acc_temp_val)
         
         # 更新最优模型
         if (epoch+1) > 0 and acc_temp_val > best_acc:

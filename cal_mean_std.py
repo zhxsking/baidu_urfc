@@ -7,7 +7,8 @@ from tqdm import tqdm
 
 
 # 计算数据集的均值及方差
-path_list = list(pd.read_table("data/train-over.txt", header=None)[0])
+# TODO 多进程
+path_list = list(pd.read_table("data/val.txt", header=None)[0])
 
 r, g, b = [], [], []
 for path in tqdm(path_list):

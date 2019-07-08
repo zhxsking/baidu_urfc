@@ -11,3 +11,5 @@ catboost_info/catboost_training.json
 data/train.csv-32911
 data/train.csv
 *.tar
+*.dump
+*.npy
