@@ -3,6 +3,8 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+import torchvision
+from os.path import join
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import metrics
@@ -16,7 +18,7 @@ from multimodal import MultiModalNet
 from urfc_dataset import UrfcDataset
 from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch, get_tta_batch
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet50, mSDNet50_p, mSDNet101, mPNASNet, MMNet
-from urfc_option import Option
+from urfc_option import opt
 
 
 def plotConfusionMatrix(cm, normalize=False, classes=None, cmap=plt.cm.Blues):
@@ -42,13 +44,15 @@ def plotConfusionMatrix(cm, normalize=False, classes=None, cmap=plt.cm.Blues):
     plt.tight_layout()
     plt.show()
 
-def eval_net(loss_func, dataloader_val, device, *nets):
+def eval_net(loss_func, dataloader_val, device, *nets, judge_res=False):
     """用验证集评判网络性能"""
     sm = nn.Softmax(dim=1)
     acc_temp = Record()
     loss_temp = Record()
     labs_ori, labs_out = [], []
     out_mat = []
+    save_path = r'E:\pic\URFC-baidu-2\eval-res'
+    save_cnt = 0
     with torch.no_grad():
         for (img, visit, out_gt) in tqdm(dataloader_val):
             if isinstance(img, list):
@@ -92,6 +96,15 @@ def eval_net(loss_func, dataloader_val, device, *nets):
             loss = loss_func(out, out_gt)
             _, preds = torch.max(out, 1)
             
+            # 保存结果以查看
+            if judge_res:
+                for j in range(len(out_gt)):
+                    if preds[j] == out_gt.data[j]:
+                        torchvision.utils.save_image(img_tta[0][j,:], join(save_path, 'T', r'{}.jpg'.format(save_cnt)))
+                    else:
+                        torchvision.utils.save_image(img_tta[0][j,:], join(save_path, 'F', r'{}.jpg'.format(save_cnt)))
+                    save_cnt += 1
+            
             loss_temp.update(loss.item(), img_tta[0].shape[0])
             acc_temp.update((float(torch.sum(preds == out_gt.data)) / len(out_gt)), len(out_gt))
             labs_ori.append(out_gt.cpu().numpy())
@@ -115,7 +128,6 @@ def eval_net(loss_func, dataloader_val, device, *nets):
 
 if __name__ == '__main__':
     __spec__ = None
-    opt = Option()
     print('use tta: {}, use blend: {}'.format(opt.use_tta, opt.use_blend))
     
     ##################### 检查nets tta blending ###########################
@@ -130,9 +142,9 @@ if __name__ == '__main__':
     print('Loading Model...')
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
-#    net0 = mResNet().to(opt.device)
-#    state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
-#    net0.load_state_dict(state['net'])
+    net0 = mSENet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
+    net0.load_state_dict(state['net'])
     
     net1 = mSENet().to(opt.device) # 2tta6652 4tta6666 7tta6664
     state = torch.load(r"checkpoint\best-cnn-senet-6617.pkl", map_location=opt.device)
@@ -151,9 +163,11 @@ if __name__ == '__main__':
     net4.load_state_dict(state['net'])
     
     #%% 验证原始数据
-#    nets = [net4]
-    nets = [net1, net3, net4]
-    loss_v, acc_v, labs_ori_np_v, labs_out_np_v, fea_v = eval_net(loss_func, dataloader_val, opt.device, *nets)
+    nets = [net0]
+#    nets = [net1, net3, net4]
+    loss_v, acc_v, labs_ori_np_v, labs_out_np_v, fea_v = eval_net(loss_func, dataloader_val, 
+                                                                  opt.device, *nets, 
+                                                                  judge_res=True)
     
     #%% 绘制混淆矩阵, 计算acc
     cm = metrics.confusion_matrix(labs_ori_np_v, labs_out_np_v)
@@ -163,13 +177,12 @@ if __name__ == '__main__':
     print('val acc: {:.4f}, loss: {:.4f}'.format(acc_v, loss_v))
     print('val acc all {:.4f}'.format(acc_all_val))
     
-    #%%
-#    np.save("data/fea_v.npy", fea_v)
-#    np.save("data/labs_ori_np_v.npy", labs_ori_np_v)
-    fea_v = np.load("data/fea_v.npy")
-    labs_ori_np_v = np.load("data/labs_ori_np_v.npy")
-    
+    #%% blending
     if opt.use_blend:
+#        np.save("data/fea_v.npy", fea_v)
+#        np.save("data/labs_ori_np_v.npy", labs_ori_np_v)
+#        fea_v = np.load("data/fea_v.npy")
+#        labs_ori_np_v = np.load("data/labs_ori_np_v.npy")
         model = CatBoostClassifier(
                 learning_rate = 0.1,
     #            l2_leaf_reg = 1e-1,

@@ -18,7 +18,7 @@ from imgaug import augmenters as iaa
 
 from dehaze import deHaze
 from linear_p import linear_p
-from urfc_option import Option
+from urfc_option import opt
 from urfc_utils import imgProc
 
 
@@ -99,7 +99,6 @@ since = time.time() # 记录时间
 
 ###############################################################################
 # 读取数据
-#opt = Option()
 #dirs = sorted(os.listdir(opt.dir_img))
 #files = {}
 #for dir in dirs:
@@ -147,7 +146,6 @@ since = time.time() # 记录时间
        
 ###############################################################################
 # 查看测试数据
-#opt = Option()
 #files = sorted(os.listdir(opt.dir_img_test))
 #
 ##pic_num = 30
@@ -173,7 +171,6 @@ since = time.time() # 记录时间
 
 ###############################################################################
 # 检查数据
-#opt = Option()
 #imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
 #imgs_val_ori = np.load(join(opt.data_npy, "val-img-ori.npy"))
 #visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
@@ -196,7 +193,6 @@ since = time.time() # 记录时间
 #plt.imshow(res)
 
 ##%%
-#opt = Option()
 #path = r"D:\pic\URFC-baidu\train_image\003\000149_003.jpg"
 #img = plt.imread(path)
 ##img = (img/255).astype(np.float32)
@@ -249,7 +245,6 @@ since = time.time() # 记录时间
 #plt.imshow(img_aug)
 
 ##%%
-#opt = Option()
 #imgs_val = np.load(join(opt.data_npy, "val-img.npy"))
 #visits_val = np.load(join(opt.data_npy, "val-visit.npy"))
 #labs_val = np.load(join(opt.data_npy, "val-label.npy"))

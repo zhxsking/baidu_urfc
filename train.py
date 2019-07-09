@@ -21,7 +21,7 @@ import OneCycle as OneCycle
 
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101, mPNASNet, mNASNet, mPOLYNet, mXNet, MMNet
 from urfc_dataset import UrfcDataset
-from urfc_option import Option
+from urfc_option import opt
 from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch, data_prefetcher
 
     
@@ -88,7 +88,6 @@ def find_lr(dataloader_train, optimizer, net, device):
 
 if __name__ == '__main__':
     __spec__ = None
-    opt = Option()
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
     msg = '备注：MMNet 6000'

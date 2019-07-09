@@ -14,11 +14,12 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import cv2
 from sklearn.ensemble import IsolationForest
+from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.model_selection import train_test_split
 import multiprocessing as mp
 import math
 
-from urfc_option import Option
+from urfc_option import opt
 
 
 def deleteFile(filePath):
@@ -106,6 +107,67 @@ def fun():
         f.write(item.split('\\')[-1] + "," + str(int(item.split('\\')[-2])-1) + "\n")
     f.close()
     
+def get_sample_kmeans(dir_img):
+    '''利用kmeans选样本，实测有减益'''
+    print('get sample kmeans...')
+     # 读取数据
+    dirs = (os.listdir(dir_img))
+    files = []
+    for dir in dirs:
+        path = join(dir_img, dir)
+        for file in os.listdir(path):
+            files.append(join(path, file))
+    
+    bad_files = list(pd.read_csv("data/bad-files.txt", header=None)[0])        
+    good_files = list(set(files)-set(bad_files))
+    good_files = sorted(good_files)
+    
+    train_files, val_files = train_test_split(good_files, test_size=0.1, random_state=opt.seed)
+    
+    f = open("data/val.txt", "w+")
+    for item in val_files:
+        f.write(item[0:-4] + "\n")
+    f.close()
+    
+    train_data = {}
+    for i in range(1, 10):
+        tmp = [a for a in train_files if int(a.split('\\')[-2]) == i]
+        train_data[i] = tmp
+            
+    f = open("data/train.txt", "w+")
+    for i in range(1, 10):
+        for item in train_data[i]:
+            f.write(item[0:-4] + "\n")
+    f.close()     
+    
+    n_clusters = min([len(train_data[i]) for i in range(1,10)]) # 所有类中最小的样本数
+    kmeans = MiniBatchKMeans(init='k-means++', n_clusters=n_clusters, batch_size=500, # 3 * batch_size > n_clusters
+                      n_init=10, max_no_improvement=5, verbose=0)
+    
+    all_kernel_files = []
+    for i in range(1,10):
+        print(i)
+        imgs = []
+        for file in tqdm(train_data[i]):
+            img = plt.imread(file)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+            imgs.append(img)
+        imgs = np.array(imgs)
+        x = imgs.reshape(imgs.shape[0], -1)
+        
+        distance = kmeans.fit_transform(x)
+        idx = [np.where(distance[:,j]==np.min(distance[:,j]))[0][0] for j in range(n_clusters)]
+        
+        kernel_files = [train_data[i][j] for j in idx]
+        all_kernel_files = list(set(all_kernel_files + kernel_files))
+        all_kernel_files = sorted(all_kernel_files)
+    
+    txt_name = "data/train-over-kmeans.txt"
+    f = open(txt_name, "w+")
+    for item in all_kernel_files:
+        f.write(item[0:-4] + "\n")
+        shutil.copy(item, r"E:\pic\URFC-baidu\tt")
+    f.close()
 
 def getSampleTxt(dir_img, dir_img_test, num_train, val_balance=False):
     '''将数据写入txt'''
@@ -482,7 +544,6 @@ def testData2npy_simple_fea(dir_img_test, dir_visit_npy_test, data_npy):
 
 
 if __name__ == '__main__':
-    opt = Option()
     since = time.time() # 记录时间
     dir_img = opt.dir_img
     dir_img_test = opt.dir_img_test

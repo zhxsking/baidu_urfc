@@ -14,7 +14,7 @@ from multimodal import MultiModalNet
 from urfc_dataset import UrfcDataset
 from urfc_utils import Logger, imgProc, aug_batch, aug_val_batch, get_tta_batch
 from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet50, mSDNet50_p, mSDNet101, mPNASNet, MMNet
-from urfc_option import Option
+from urfc_option import opt
 
 
 def predict(dataloader_test, device, *nets):
@@ -76,7 +76,6 @@ def predict(dataloader_test, device, *nets):
 
 if __name__ == '__main__':
     __spec__ = None
-    opt = Option()
     
     # 加载模型
     print('Loading Model...')

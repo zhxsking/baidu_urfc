@@ -51,6 +51,7 @@ class Option():
 #        torch.backends.cudnn.benchmark = True
         torch.cuda.empty_cache()
 
+opt = Option()
 '''
 001 居住区
 002 学校

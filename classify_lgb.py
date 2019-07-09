@@ -11,12 +11,11 @@ import lightgbm as lgb
 
 from preprocess import imgProc
 from cnn import mResNet18
-from urfc_option import Option
+from urfc_option import opt
 
 
 if __name__ == '__main__':
     __spec__ = None
-    opt = Option()
     
     # 加载数据
     print('Loading Data...')

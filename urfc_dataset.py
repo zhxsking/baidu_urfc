@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 from imgaug import augmenters as iaa
 
-from urfc_option import Option
+from urfc_option import opt
 from linear_p import linear_p
 
 
@@ -22,6 +22,9 @@ class UrfcDataset(Dataset):
         self.mode = mode
         self.tta = tta
         self.data_list = list(pd.read_csv(path_txt, header=None)[0])
+        
+        self.means = opt.means
+        self.stds = opt.stds
         
         # 定义操作表
         self.tfs_lib = {
@@ -88,6 +91,7 @@ class UrfcDataset(Dataset):
         for tf in tfs_str:
             tfs.append(self.tfs_lib[tf])
         tfs.append(transforms.ToTensor())
+        tfs.append(transforms.Normalize(self.means, self.stds))
         return transforms.Compose(tfs)
     
     def augumentor(self,image):
@@ -117,7 +121,6 @@ if __name__ == '__main__':
     from torch.utils.data import DataLoader
     import matplotlib.pyplot as plt
     
-    opt = Option()
     dataset = UrfcDataset(opt.dir_img_test, opt.dir_visit_npy_test, "data/test.txt",
                           aug=False, mode='test', tta=True)
     dataloader = DataLoader(dataset=dataset, batch_size=3, shuffle=False)
