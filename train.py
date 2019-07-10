@@ -19,7 +19,7 @@ from boxx import g
 import CLR as CLR
 import OneCycle as OneCycle
 
-from cnn import mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101, mPNASNet, mNASNet, mPOLYNet, mXNet, MMNet
+from cnn import CNN, mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101, mDPN26, MMNet
 from urfc_dataset import UrfcDataset
 from urfc_option import opt
 from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch, data_prefetcher
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     __spec__ = None
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
-    msg = '备注：MMNet 6000'
+    msg = '备注：base mSDNet50 fc层添加bn 放dropout前'
     print(msg)
     log.write(msg)
 
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
-    net = MMNet(pretrained=opt.pretrained).to(opt.device)
+    net = mSDNet50(pretrained=opt.pretrained).to(opt.device)
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
 #        if 'layer' in name:
@@ -146,14 +146,16 @@ if __name__ == '__main__':
 #    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 2∗Tmax为周期，在一个周期内先下降，后上升
-#    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1) # 动态改变lr
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1) # 动态改变lr
+#    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
-#    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-3, max_lr=0.1, 
+#    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-3, max_lr=1, 
 #                                                  step_size_up=4000, max_momentum=0.95,
 #                                                  mode='triangular2')
     
+    # senet-0.1 sdnet50-0.01 sdnet50-fc加bn-0.1 dpn26-1e-2 cnn-0.01
 #    find_lr(dataloader_train, optimizer, net, opt.device) # 0.18
+#    sys.exit(0)
     
 #    onecycle = OneCycle.OneCycle(int(len(dataset_train) * opt.epochs / opt.batchsize), 1,
 #                                 momentum_vals=(0.95, 0.8))
@@ -173,19 +175,27 @@ if __name__ == '__main__':
     best_loss = 99.0
     best_epoch_loss = 1
     best_model_loss = copy.deepcopy(net.state_dict())
-
-    # 训练
-    print('Start Training...')
+    
+    # 预热
+    warmup_list = [0,1]
+    warmup_len = len(dataloader_train) * len(warmup_list)
     
 #    save_path = r"E:\pic\URFC-baidu\tttt"
     
+    # 训练
+    print('Start Training...')
     for epoch in range(opt.epochs):
         loss_temp_train = Record()
         acc_temp_train = Record()
         net.train()
-#        scheduler.step(epoch)
+        scheduler.step(epoch)
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
 #            torchvision.utils.save_image(img, join(save_path, r'epoch-{}-iter-{}.jpg'.format(epoch+1, cnt)))
+            
+            if epoch in warmup_list:
+                for param_group in optimizer.param_groups:
+                    cur_iter = float(cnt + len(dataloader_train) * epoch)
+                    param_group['lr'] = opt.lr * (cur_iter/warmup_len)
             
 #            if cnt==1:
 #                torch.cuda.synchronize()
@@ -228,7 +238,7 @@ if __name__ == '__main__':
         loss_list_val.append(loss_temp_val)
         acc_list_val.append(acc_temp_val)
         
-        scheduler.step(acc_temp_val)
+#        scheduler.step(acc_temp_val)
         
         # 更新最优模型
         if (epoch+1) > 0 and acc_temp_val > best_acc:
@@ -299,6 +309,8 @@ if __name__ == '__main__':
     print(msg)
     log.write(msg)
     log.close()
+    
+    torch.cuda.empty_cache()
     
     # 训练完显示loss及Acc曲线
     plt.figure()

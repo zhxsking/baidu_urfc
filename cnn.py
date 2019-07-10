@@ -709,13 +709,13 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = MMNet(pretrained=False).to(device)
+    net = mDPN26(pretrained=False).to(device)
 #    net = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
     
-    bs = 128
+    bs = 1
     test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
     test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
 
