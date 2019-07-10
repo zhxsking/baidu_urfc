@@ -20,6 +20,7 @@ import CLR as CLR
 import OneCycle as OneCycle
 
 from cnn import CNN, mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101, mDPN26, MMNet
+from multimodel import mResnet50
 from urfc_dataset import UrfcDataset
 from urfc_option import opt
 from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch, data_prefetcher
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     __spec__ = None
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
-    msg = '备注：base mSDNet50 fc层添加bn 放dropout前'
+    msg = '备注：base mResnet50 dilation=3'
     print(msg)
     log.write(msg)
 
@@ -136,7 +137,8 @@ if __name__ == '__main__':
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
-    net = mSDNet50(pretrained=opt.pretrained).to(opt.device)
+#    net = mSDNet50(pretrained=opt.pretrained).to(opt.device)
+    net = mResnet50(dilation=3).to(opt.device)
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
 #        if 'layer' in name:
@@ -153,7 +155,7 @@ if __name__ == '__main__':
 #                                                  step_size_up=4000, max_momentum=0.95,
 #                                                  mode='triangular2')
     
-    # senet-0.1 sdnet50-0.01 sdnet50-fc加bn-0.1 dpn26-1e-2 cnn-0.01
+    # senet-0.1 sdnet50-0.01 sdnet50-fc加bn-0.1 dpn26-1e-2 cnn-0.01 mResnet50-0.001
 #    find_lr(dataloader_train, optimizer, net, opt.device) # 0.18
 #    sys.exit(0)
     
