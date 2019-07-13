@@ -1,134 +1,139 @@
 # -*- coding: utf-8 -*-
 
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import models
+import pretrainedmodels
 
 
-def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
-    """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=dilation, groups=groups, bias=False, dilation=dilation)
-
-def conv1x1(in_planes, out_planes, stride=1):
-    """1x1 convolution"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
-
-
-class Bottleneck(nn.Module):
-    expansion = 4
-
-    def __init__(self, inplanes, planes, stride=1, dilation=1, need_downsample=False):
-        super(Bottleneck, self).__init__()
-
-        self.conv1 = conv1x1(inplanes, planes)
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = conv3x3(planes, planes, stride=stride, dilation=dilation)
-        self.bn2 = nn.BatchNorm2d(planes)
-        self.conv3 = conv1x1(planes, planes * self.expansion)
-        self.bn3 = nn.BatchNorm2d(planes * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
+class SeResNext50(nn.Module):
+    def __init__(self, in_channels=3, out_channels=64, pretrained=False):
+        super().__init__()
+        if pretrained:
+            mdl= pretrainedmodels.__dict__['se_resnext50_32x4d']()
+        else:
+            mdl= pretrainedmodels.__dict__['se_resnext50_32x4d'](pretrained=None)
         
-        self.need_downsample = need_downsample
-        if self.need_downsample:
-            self.downsample = nn.Sequential(
-                conv1x1(inplanes, planes * self.expansion, stride=stride),
-                nn.BatchNorm2d(planes * self.expansion),
-            )
-
+        self.model = list(mdl.children())[:-2]
+        self.model.append(nn.AdaptiveAvgPool2d(1))
+        self.model = nn.Sequential(*self.model)
+        self.model[0].conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, 
+                                        padding=1, bias=False)
+        self.fc = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(in_features=mdl.last_linear.in_features, out_features=out_channels, bias=True),
+                )
+        
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+    
     def forward(self, x):
-        identity = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.conv3(out)
-        out = self.bn3(out)
-        
-        if self.need_downsample:
-            identity = self.downsample(x)
-
-        out += identity
-        out = self.relu(out)
-
-        return out
-
-
-class ResNet(nn.Module):
-
-    def __init__(self, num_block, num_classes=1000, dilation=1):
-        super(ResNet, self).__init__()
-
-        self.dilation = dilation
-
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
-                               bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        
-        self.layer1 = self._make_layer(64, 64, num_block[0], stride=1, dilation=dilation)
-        self.layer2 = self._make_layer(4*64, 128, num_block[0], stride=2, dilation=dilation)
-        self.layer3 = self._make_layer(4*128, 256, num_block[0], stride=2, dilation=dilation)
-        self.layer4 = self._make_layer(4*256, 512, num_block[0], stride=2, dilation=dilation)
-        
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512*4, num_classes)
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for m in self.modules():
-            if isinstance(m, Bottleneck):
-                nn.init.constant_(m.bn3.weight, 0)
-
-    def _make_layer(self, inplanes, planes, num_block, stride=1, dilation=1):
-        layers = []
-        layers.append(Bottleneck(inplanes, planes, stride=stride, dilation=dilation, need_downsample=True))
-        for i in range(num_block-1):
-            layers.append(Bottleneck(planes*4, planes, dilation=dilation, need_downsample=False))
-        
-        return nn.Sequential(*layers)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-
-        x = self.avgpool(x)
-        x = x.reshape(x.size(0), -1)
+        x = self.model(x)
+        x = x.view(x.size(0), -1)
         x = self.fc(x)
+        return x
 
+class DPN68(nn.Module):
+    def __init__(self, in_channels=3, out_channels=64, pretrained=False):
+        super().__init__()
+#        print(pretrainedmodels.model_names)
+        if pretrained:
+            mdl= pretrainedmodels.__dict__['dpn68']()
+        else:
+            mdl= pretrainedmodels.__dict__['dpn68'](pretrained=None)
+
+        self.model = mdl
+        self.model.test_time_pool = False
+        self.model.features.conv1_1 = nn.Sequential(
+                nn.Conv2d(in_channels, 10, kernel_size=3, stride=1, padding=1, bias=False),
+                nn.BatchNorm2d(10),
+                nn.ReLU(inplace=True),
+                )
+        self.model.last_linear = nn.Conv2d(mdl.last_linear.in_channels, out_channels, kernel_size=(1, 1), stride=(1, 1))
+
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+        
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+class DPN92(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+#        print(pretrainedmodels.model_names)
+        if pretrained:
+            mdl= pretrainedmodels.__dict__['dpn92']()
+        else:
+            mdl= pretrainedmodels.__dict__['dpn92'](pretrained=None)
+
+        self.model = mdl
+        self.model.test_time_pool = False
+        self.model.features.conv1_1 = nn.Sequential(
+                nn.Conv2d(7, 64, kernel_size=3, stride=1, padding=1, bias=False),
+                nn.BatchNorm2d(64),
+                nn.ReLU(inplace=True),
+                )
+        self.model.last_linear = nn.Conv2d(mdl.last_linear.in_channels, 9, kernel_size=(1, 1), stride=(1, 1))
+
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+        
+    def forward(self, x):
+        x = self.model(x)
         return x
 
 
-def resnet50(num_classes=9, dilation=1):
-    return ResNet(num_block=[3, 4, 6, 3], num_classes=num_classes, dilation=dilation)
-
-
-def resnet101(num_classes=9, dilation=1):
-    return ResNet(num_block=[3, 4, 23, 3], num_classes=num_classes, dilation=dilation)
-
-
-def resnet152(num_classes=9, dilation=1):
-    return ResNet(num_block=[3, 8, 36, 3], num_classes=num_classes, dilation=dilation)
-
-
 if __name__ == '__main__':
-    net = resnet50(dilation=1)
-    
-#    from torchvision import models
-#    net = models.resnet50(num_classes=9)
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    img_depth = 3
+    img_height = 100
+    img_width = 100
+    visit_depth = 7
+    visit_height = 26
+    visit_width = 24
+    bs = 1
+    test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
+    test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
+
+    net1 = SeResNext50(3, 128).to(device)
     
     from torchsummary import summary
-    summary(net, (3, 100, 100))
+    summary(net1, (img_depth, img_height, img_width))
+    
+    out = net1(test_x1)
+    print(out.shape)
+    
+    net2 = SeResNext50(7, 64).to(device)
+    
+#    from torchsummary import summary
+#    summary(net2, (visit_depth, visit_height, visit_width))
+    
+    out = net2(test_x2)
+    print(out.shape)
+
+

@@ -19,8 +19,9 @@ from boxx import g
 import CLR as CLR
 import OneCycle as OneCycle
 
-from cnn import CNN, mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101, mDPN26, MMNet
-from multimodel import mResnet50
+from cnn import CNN, mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101
+from cnn import mDPN26, MMNet, mDPN68Net, mDPN92Net, mSSNet50, mSSNet101
+from multimodel import MultiModel, SigModel
 from urfc_dataset import UrfcDataset
 from urfc_option import opt
 from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch, data_prefetcher
@@ -84,14 +85,14 @@ def find_lr(dataloader_train, optimizer, net, device):
         loss.backward()
         optimizer.step()
     clr.plot()
-    print('best lr: {:.4f}'.format(clr.lrs[np.argmin(np.array(clr.losses))]))
+    print('best lr: {:.6f}'.format(clr.lrs[np.argmin(np.array(clr.losses))]))
     g() # 保存所有临时变量
 
 if __name__ == '__main__':
     __spec__ = None
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
-    msg = '备注：base mResnet50 dilation=3'
+    msg = '备注：base mSSNet101' # 
     print(msg)
     log.write(msg)
 
@@ -137,8 +138,15 @@ if __name__ == '__main__':
     
     # 定义网络及其他
 #    net = CNN().to(opt.device)
-#    net = mSDNet50(pretrained=opt.pretrained).to(opt.device)
-    net = mResnet50(dilation=3).to(opt.device)
+#    net = mDPN92Net().to(opt.device)
+    net = mSSNet101(pretrained=opt.pretrained).to(opt.device)
+#    net = MultiModel(['seresnext50', 'seresnext50'], [128, 64]).to(opt.device)
+#    net = SigModel('seresnext50', 128).to(opt.device)
+#    net = mResnet50(dilation=3).to(opt.device)
+    
+    state = torch.load(r"checkpoint\cnn-epoch-2-ssnet101.pkl", map_location=opt.device)
+    net.load_state_dict(state['net'])
+    
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
 #        if 'layer' in name:
@@ -155,7 +163,7 @@ if __name__ == '__main__':
 #                                                  step_size_up=4000, max_momentum=0.95,
 #                                                  mode='triangular2')
     
-    # senet-0.1 sdnet50-0.01 sdnet50-fc加bn-0.1 dpn26-1e-2 cnn-0.01 mResnet50-0.001
+    # senet-0.1 sdnet50-0.01 sdnet50-fc加bn-0.1 dpn26-1e-2 cnn-0.01 mResnet50-0.001 mDPN92Net-1e-3
 #    find_lr(dataloader_train, optimizer, net, opt.device) # 0.18
 #    sys.exit(0)
     
@@ -227,6 +235,7 @@ if __name__ == '__main__':
             print('\rbatch {}/{} temporary loss: {:.4f} acc: {:.4f}'
                   .format(cnt, len(dataloader_train), loss.item(), acc_tmp), end='\r')
             
+#            del img, visit, out_gt, loss
 #            if cnt==50:
 #                torch.cuda.synchronize()
 #                print(time.time() - since)
