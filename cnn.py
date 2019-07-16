@@ -366,7 +366,7 @@ class mSENet(nn.Module):
         self.features.append(nn.AdaptiveAvgPool2d(1))
         self.features = nn.Sequential(*self.features)
         
-        self.features[0].conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, 
+        self.features[0].conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, 
                                         padding=3, bias=False)
         
         self.fc = nn.Linear(mdl.last_linear.in_features, 9)
@@ -383,13 +383,14 @@ class mSENet(nn.Module):
     
     def forward(self, x_img, x_visit):
         # N,7,26,24整型为N,1,56,78
-#        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
-#        # pad为N,1,100,100
+        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
+        # pad为N,1,100,100
 #        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
-#        
-#        x = torch.cat((x_img, x_visit), dim=1)
+        x_visit = nn.ReflectionPad2d((11,11,22,22))(x_visit)
         
-        features = self.features(x_img)
+        x = torch.cat((x_img, x_visit), dim=1)
+        
+        features = self.features(x)
         out = F.relu(features, inplace=True)
         out = F.adaptive_avg_pool2d(out, (1, 1))
         out_fea = out
@@ -502,9 +503,7 @@ class mSSNet50(nn.Module):
         x_vis = x_vis.reshape(x_vis.size(0), 1, 56, -1)
         # pad为N,1,100,100
         x_vis = nn.ConstantPad2d((11,11,22,22), 0)(x_vis)
-        
-        x_img = x_img.resize()
-        
+                
         x = torch.cat((x_img, x_vis), dim=1)
         
         x = self.img_conv(x)
@@ -976,25 +975,24 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
-    img_depth = 3
+    img_depth = 10
     img_height = 100
     img_width = 100
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-#    net = mSDNet101().to(device)
-    net = mSSNet50().to(device)
+    net = mSENet().to(device)
 #    net = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
     
-    bs = 1
-    test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
-    test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
-
-    out_x, out_fea = net(test_x1, test_x2)
-    print(out_x.shape)
-    print(out_fea.shape)
-
-    torch.cuda.empty_cache()
+#    bs = 1
+#    test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
+#    test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
+#
+#    out_x, out_fea = net(test_x1, test_x2)
+#    print(out_x.shape)
+#    print(out_fea.shape)
+#
+#    torch.cuda.empty_cache()

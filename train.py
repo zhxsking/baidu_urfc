@@ -92,7 +92,7 @@ if __name__ == '__main__':
     __spec__ = None
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
-    msg = '备注：base mSSNet101' # 
+    msg = '备注：MMNet' # 
     print(msg)
     log.write(msg)
 
@@ -139,13 +139,13 @@ if __name__ == '__main__':
     # 定义网络及其他
 #    net = CNN().to(opt.device)
 #    net = mDPN92Net().to(opt.device)
-    net = mSSNet101(pretrained=opt.pretrained).to(opt.device)
+    net = MMNet(pretrained=opt.pretrained).to(opt.device)
 #    net = MultiModel(['seresnext50', 'seresnext50'], [128, 64]).to(opt.device)
 #    net = SigModel('seresnext50', 128).to(opt.device)
 #    net = mResnet50(dilation=3).to(opt.device)
     
-    state = torch.load(r"checkpoint\cnn-epoch-2-ssnet101.pkl", map_location=opt.device)
-    net.load_state_dict(state['net'])
+#    state = torch.load(r"checkpoint\cnn-epoch-2-ssnet101.pkl", map_location=opt.device)
+#    net.load_state_dict(state['net'])
     
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
@@ -156,8 +156,8 @@ if __name__ == '__main__':
 #    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 2∗Tmax为周期，在一个周期内先下降，后上升
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1) # 动态改变lr
-#    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.1, patience=3, verbose=True)
+#    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1) # 动态改变lr
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.3, patience=3, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-3, max_lr=1, 
 #                                                  step_size_up=4000, max_momentum=0.95,
@@ -198,7 +198,7 @@ if __name__ == '__main__':
         loss_temp_train = Record()
         acc_temp_train = Record()
         net.train()
-        scheduler.step(epoch)
+#        scheduler.step(epoch)
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
 #            torchvision.utils.save_image(img, join(save_path, r'epoch-{}-iter-{}.jpg'.format(epoch+1, cnt)))
             
@@ -249,7 +249,7 @@ if __name__ == '__main__':
         loss_list_val.append(loss_temp_val)
         acc_list_val.append(acc_temp_val)
         
-#        scheduler.step(acc_temp_val)
+        scheduler.step(acc_temp_val)
         
         # 更新最优模型
         if (epoch+1) > 0 and acc_temp_val > best_acc:
