@@ -25,6 +25,7 @@ from multimodel import MultiModel, SigModel
 from urfc_dataset import UrfcDataset
 from urfc_option import opt
 from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch, data_prefetcher
+from focal_loss import FocalLoss
 
     
 def evalNet(net, loss_func, dataloader_val, device):
@@ -153,8 +154,11 @@ if __name__ == '__main__':
 #            param.requires_grad = False
     
     loss_func = nn.CrossEntropyLoss().to(opt.device)
+#    loss_func = FocalLoss(gamma=2).to(opt.device)
+    
 #    optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=opt.weight_decay)
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
+    
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 2∗Tmax为周期，在一个周期内先下降，后上升
 #    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1) # 动态改变lr
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.3, patience=3, verbose=True)
@@ -169,8 +173,6 @@ if __name__ == '__main__':
     
 #    onecycle = OneCycle.OneCycle(int(len(dataset_train) * opt.epochs / opt.batchsize), 1,
 #                                 momentum_vals=(0.95, 0.8))
-    
-    
     
     # 初始化
     since = time.time() # 记录时间

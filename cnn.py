@@ -975,7 +975,7 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
-    img_depth = 10
+    img_depth = 3
     img_height = 100
     img_width = 100
     visit_depth = 7
