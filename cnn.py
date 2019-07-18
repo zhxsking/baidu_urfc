@@ -7,6 +7,7 @@ from torchvision import models
 import pretrainedmodels
 
 from multimodal import DPN26, DPN92, MultiModalNet, FCViewer
+from unet import UNet, UNet_p
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, padding=1, dilation=1):
@@ -115,6 +116,47 @@ class CNN(nn.Module):
         x = self.fc(x)
 #        x = F.log_softmax(x, dim=1)
         return x
+
+class mTESTNet(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+#        print(pretrainedmodels.model_names)
+        if pretrained:
+            mdl= pretrainedmodels.__dict__['nasnetalarge'](num_classes=1000, pretrained='imagenet')
+        else:
+            mdl= pretrainedmodels.__dict__['nasnetalarge'](num_classes=1000, pretrained=None)
+        
+#        self.features = list(mdl.children())[:-3]
+##        self.features.append(nn.AdaptiveAvgPool2d(1))
+##        self.features.append(nn.Dropout(p=0.5))
+#        self.features = nn.Sequential(*self.features)
+        
+        self.features = mdl
+        self.features.conv0.conv = nn.Conv2d(3, 96, kernel_size=3, padding=1)
+        self.features.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.features.last_linear = nn.Linear(in_features=4032, out_features=64, bias=True)
+        
+#        self.fc = nn.Linear(mdl.last_linear.in_features, 9)
+        
+
+        
+    def forward(self, x_img, x_visit):
+        # N,7,26,24整型为N,1,56,78
+#        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
+#        # pad为N,1,100,100
+#        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
+#        
+#        x = torch.cat((x_img, x_visit), dim=1)
+        
+        features = self.features(x_img)
+        return features
+#        out = F.relu(features, inplace=True)
+#        out = F.adaptive_avg_pool2d(out, (1, 1))
+#        out_fea = out
+#        out = out.view(features.size(0), -1)
+#        out = self.fc(out)
+# 
+#        return out, out_fea
 
 class mResNet18(nn.Module):
     def __init__(self, pretrained=False):
@@ -385,8 +427,8 @@ class mSENet(nn.Module):
         # N,7,26,24整型为N,1,56,78
         x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
         # pad为N,1,100,100
-#        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
-        x_visit = nn.ReflectionPad2d((11,11,22,22))(x_visit)
+        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
+#        x_visit = nn.ReflectionPad2d((11,11,22,22))(x_visit)
         
         x = torch.cat((x_img, x_visit), dim=1)
         
@@ -398,48 +440,119 @@ class mSENet(nn.Module):
         out = self.fc(out)
  
         return out, out_fea
-    
 
-class mTESTNet(nn.Module):
+class mUNet(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
-#        print(pretrainedmodels.model_names)
-        if pretrained:
-            mdl= pretrainedmodels.__dict__['nasnetalarge'](num_classes=1000, pretrained='imagenet')
-        else:
-            mdl= pretrainedmodels.__dict__['nasnetalarge'](num_classes=1000, pretrained=None)
         
-#        self.features = list(mdl.children())[:-3]
-##        self.features.append(nn.AdaptiveAvgPool2d(1))
-##        self.features.append(nn.Dropout(p=0.5))
-#        self.features = nn.Sequential(*self.features)
+        self.features = UNet(in_depth=4)
         
-        self.features = mdl
-        self.features.conv0.conv = nn.Conv2d(3, 96, kernel_size=3, padding=1)
-        self.features.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.features.last_linear = nn.Linear(in_features=4032, out_features=64, bias=True)
-        
-#        self.fc = nn.Linear(mdl.last_linear.in_features, 9)
-        
-
-        
+        if (pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+    
     def forward(self, x_img, x_visit):
         # N,7,26,24整型为N,1,56,78
-#        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
-#        # pad为N,1,100,100
-#        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
-#        
-#        x = torch.cat((x_img, x_visit), dim=1)
+        x_visit = x_visit.permute(0,2,1,3) # 26,7,24
+        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
+        # pad为N,1,100,100
+        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
+#        x_visit = nn.ReflectionPad2d((11,11,22,22))(x_visit)
         
-        features = self.features(x_img)
-        return features
-#        out = F.relu(features, inplace=True)
-#        out = F.adaptive_avg_pool2d(out, (1, 1))
-#        out_fea = out
-#        out = out.view(features.size(0), -1)
-#        out = self.fc(out)
-# 
-#        return out, out_fea
+        x = torch.cat((x_img, x_visit), dim=1)
+        x = nn.ConstantPad2d((6,6,6,6), 0)(x) # 100*100 -> 112*112
+        
+        out = self.features(x)
+ 
+        return out, out
+
+class mSS_UNet(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+        
+        # 3*100*100 -> 32*32*32
+        self.img_conv = nn.Sequential(
+                conv3x3(3, 64, stride=1, dilation=1),
+                nn.BatchNorm2d(64),
+                nn.ReLU(inplace=True),
+                Bottleneck(64, 64, stride=2, dilation=1, expansion=2, need_downsample=True),
+                Bottleneck(64*2, 32, stride=2, padding=8, expansion=1, need_downsample=True),
+                )
+        
+        # 7*26*24 -> 32*32*32
+        self.vis_conv = nn.Sequential(
+                nn.Conv2d(7, 32, kernel_size=3, padding=(4,5)),
+                nn.BatchNorm2d(32),
+                nn.ReLU(inplace=True),
+                )
+        
+        self.features = UNet(in_depth=64)
+        
+        if (pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+    
+    def forward(self, x_img, x_vis):
+        x_img = self.img_conv(x_img)
+        x_vis = self.vis_conv(x_vis)
+        x = torch.cat((x_img, x_vis), dim=1)
+        
+        x = self.features(x)
+        
+        return x, x
+
+class mSS_UNet_p(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+        
+        # 3*100*100 -> 32*32*26
+        self.img_conv = nn.Sequential(
+                conv3x3(3, 64, stride=1, dilation=1),
+                nn.BatchNorm2d(64),
+                nn.ReLU(inplace=True),
+                Bottleneck(64, 64, stride=2, dilation=1, expansion=2, need_downsample=True),
+                Bottleneck(64*2, 32, stride=2, padding=8, expansion=1, need_downsample=True),
+                )
+        
+        # 7*26*24 -> 32*26*26
+        self.vis_conv = nn.Sequential(
+                nn.Conv2d(7, 32, kernel_size=3, padding=(4,5)),
+                nn.BatchNorm2d(32),
+                nn.ReLU(inplace=True),
+                )
+        
+        self.features = UNet_p(in_depth=64)
+        
+        if (pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+    
+    def forward(self, x_img, x_vis):
+        x_img = self.img_conv(x_img)
+        x_vis = self.vis_conv(x_vis)
+        x = torch.cat((x_img, x_vis), dim=1)
+        
+        x = self.features(x)
+        
+        return x, x
 
 class mSSNet50(nn.Module):
     def __init__(self, pretrained=False):
@@ -451,19 +564,19 @@ class mSSNet50(nn.Module):
         
         # 3*100*100 -> 32*26*26
         self.img_conv = nn.Sequential(
-                conv3x3(4, 64, stride=1, dilation=1),
+                conv3x3(3, 64, stride=1, dilation=1),
                 nn.BatchNorm2d(64),
                 nn.ReLU(inplace=True),
                 Bottleneck(64, 64, stride=2, dilation=1, expansion=2, need_downsample=True),
-                Bottleneck(64*2, 64, stride=2, padding=2, expansion=1, need_downsample=True),
+                Bottleneck(64*2, 32, stride=2, padding=2, expansion=1, need_downsample=True),
                 )
         
         # 7*26*24 -> 32*26*26
-#        self.vis_conv = nn.Sequential(
-#                nn.Conv2d(7, 32, kernel_size=3, padding=(1,2)),
-#                nn.BatchNorm2d(32),
-#                nn.ReLU(inplace=True),
-#                )
+        self.vis_conv = nn.Sequential(
+                nn.Conv2d(7, 32, kernel_size=3, padding=(1,2)),
+                nn.BatchNorm2d(32),
+                nn.ReLU(inplace=True),
+                )
         
         self.features = list(mdl.children())[1:-2]
         self.features.append(nn.AdaptiveAvgPool2d(1))
@@ -484,31 +597,10 @@ class mSSNet50(nn.Module):
                 elif isinstance(m, nn.Linear):
                     nn.init.constant_(m.bias, 0)
     
-#    def forward(self, x_img, x_vis):
-#        x_img = self.img_conv(x_img)
-#        x_vis = self.vis_conv(x_vis)
-#        x = torch.cat((x_img, x_vis), dim=1)
-#        
-#        x = self.features(x)
-#        
-#        x = x.view(x.size(0), -1)
-#        fea = x
-#        x = self.fc(x)
-#        
-#        return x, fea
-    
     def forward(self, x_img, x_vis):
-        
-        # N,7,26,24整型为N,1,56,78
-        x_vis = x_vis.reshape(x_vis.size(0), 1, 56, -1)
-        # pad为N,1,100,100
-        x_vis = nn.ConstantPad2d((11,11,22,22), 0)(x_vis)
-                
+        x_img = self.img_conv(x_img)
+        x_vis = self.vis_conv(x_vis)
         x = torch.cat((x_img, x_vis), dim=1)
-        
-        x = self.img_conv(x)
-#        x_vis = self.vis_conv(x_vis)
-        
         
         x = self.features(x)
         
@@ -981,18 +1073,18 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = mSENet().to(device)
+    net = mUNet().to(device)
 #    net = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(device)
     
     from torchsummary import summary
     summary(net, [(img_depth, img_height, img_width), (visit_depth, visit_height, visit_width)])
     
-#    bs = 1
-#    test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
-#    test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
-#
-#    out_x, out_fea = net(test_x1, test_x2)
-#    print(out_x.shape)
-#    print(out_fea.shape)
-#
-#    torch.cuda.empty_cache()
+    bs = 32
+    test_x1 = torch.rand(bs, img_depth, img_height, img_width).to(device)
+    test_x2 = torch.rand(bs, visit_depth, visit_height, visit_width).to(device)
+
+    out_x, out_fea = net(test_x1, test_x2)
+    print(out_x.shape)
+    print(out_fea.shape)
+
+    torch.cuda.empty_cache()

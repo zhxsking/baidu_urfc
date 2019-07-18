@@ -20,7 +20,7 @@ import CLR as CLR
 import OneCycle as OneCycle
 
 from cnn import CNN, mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101
-from cnn import mDPN26, MMNet, mDPN68Net, mDPN92Net, mSSNet50, mSSNet101
+from cnn import mDPN26, MMNet, mDPN68Net, mDPN92Net, mSSNet50, mSSNet101, mUNet, mSS_UNet, mSS_UNet_p
 from multimodel import MultiModel, SigModel
 from urfc_dataset import UrfcDataset
 from urfc_option import opt
@@ -93,13 +93,13 @@ if __name__ == '__main__':
     __spec__ = None
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
-    msg = '备注：MMNet' # 
+    msg = '备注：base mSS_UNet+double-bottleneck' # 
     print(msg)
     log.write(msg)
 
     # 初始化保存目录
     if not os.path.exists('checkpoint'):
-        os.makedirs('checkpoint')
+        os.makedirs('checkpoint') 
 #    else:
 #        shutil.rmtree('checkpoint')
 #        os.makedirs('checkpoint')
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     # 定义网络及其他
 #    net = CNN().to(opt.device)
 #    net = mDPN92Net().to(opt.device)
-    net = MMNet(pretrained=opt.pretrained).to(opt.device)
+    net = mSS_UNet(pretrained=opt.pretrained).to(opt.device)
 #    net = MultiModel(['seresnext50', 'seresnext50'], [128, 64]).to(opt.device)
 #    net = SigModel('seresnext50', 128).to(opt.device)
 #    net = mResnet50(dilation=3).to(opt.device)

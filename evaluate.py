@@ -17,7 +17,8 @@ from multimodal import MultiModalNet
 
 from urfc_dataset import UrfcDataset
 from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch, get_tta_batch
-from cnn import mResNet18, mResNet, mDenseNet, mSENet, mDPN26, mSDNet50, mSDNet50_p, mSDNet101, mPNASNet, MMNet
+from cnn import CNN, mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101
+from cnn import mDPN26, MMNet, mDPN68Net, mDPN92Net, mSSNet50, mSSNet101, mUNet, mSS_UNet
 from urfc_option import opt
 
 
@@ -135,36 +136,41 @@ if __name__ == '__main__':
     # 加载数据
     print('Loading Data...')
     dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False, tta=opt.use_tta)
-    dataloader_val = DataLoader(dataset=dataset_val, batch_size=1024,
-                                shuffle=False, num_workers=opt.workers, pin_memory=True)
+    dataloader_val = DataLoader(dataset=dataset_val, batch_size=512,
+                                shuffle=False, num_workers=0, pin_memory=True)
     
     # 加载模型
     print('Loading Model...')
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
-    net0 = mSENet().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
-    net0.load_state_dict(state['net'])
+#    net0 = mSS_UNet().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
+##    state = torch.load(r"checkpoint\cnn-epoch-6.pkl", map_location=opt.device)
+#    net0.load_state_dict(state['net'])
     
-    net1 = mSENet().to(opt.device) # 2tta6652 4tta6666 7tta6664
-    state = torch.load(r"checkpoint\best-cnn-senet-6617.pkl", map_location=opt.device)
+    net1 = MMNet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-mmnet-6779.pkl", map_location=opt.device)
     net1.load_state_dict(state['net'])
     
-    net2 = mSENet().to(opt.device) # 2tta6397 4tta6406 7tta6408
-    state = torch.load(r"checkpoint\best-cnn-senet-6386.pkl", map_location=opt.device)
+    net2 = mSSNet50().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-ssnet50-6421.pkl", map_location=opt.device)
     net2.load_state_dict(state['net'])
     
-    net3 = mResNet().to(opt.device) # 4tta6534
-    state = torch.load(r"checkpoint\best-cnn-resnet-26-7-24-6470.pkl", map_location=opt.device)
+    net3 = mSDNet50_p().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-sdnet50-p-6689.pkl", map_location=opt.device)
     net3.load_state_dict(state['net'])
     
-    net4 = MMNet().to(opt.device) # 4tta6811
-    state = torch.load(r"checkpoint\best-cnn-mmnet-6774.pkl", map_location=opt.device)
+    net4 = mSSNet101().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-ssnet101-6425.pkl", map_location=opt.device)
     net4.load_state_dict(state['net'])
     
+    net5 = mSS_UNet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-ssunet-6308.pkl", map_location=opt.device)
+    net5.load_state_dict(state['net'])
+    
     #%% 验证原始数据
-    nets = [net0]
-#    nets = [net1, net3, net4]
+#    nets = [net5]
+    nets = [net1, net3, net4]
     loss_v, acc_v, labs_ori_np_v, labs_out_np_v, fea_v = eval_net(loss_func, dataloader_val, 
                                                                   opt.device, *nets, 
                                                                   judge_res=True)
