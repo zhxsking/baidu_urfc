@@ -19,8 +19,8 @@ from boxx import g
 import CLR as CLR
 import OneCycle as OneCycle
 
-from cnn import CNN, mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101
-from cnn import mDPN26, MMNet, mDPN68Net, mDPN92Net, mSSNet50, mSSNet101, mUNet, mSS_UNet, mSS_UNet_p
+from cnn import CNN, mResNet18, mResNet50, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101
+from cnn import mDPN26, MMNet, mDPN68Net, mDPN92Net, mSSNet50, mSSNet101, mUNet, mSS_UNet, mSS_UNet_p, mSS_D_UNet
 from multimodel import MultiModel, SigModel
 from urfc_dataset import UrfcDataset
 from urfc_option import opt
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     __spec__ = None
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
-    msg = '备注：base mSS_UNet+double-bottleneck' # 
+    msg = '备注：base mSDNet101' # 
     print(msg)
     log.write(msg)
 
@@ -130,7 +130,7 @@ if __name__ == '__main__':
 #    dataloader_val = DataLoader(dataset=TensorDataset(imgs_val, visits_val, labs_val),
 #                                  batch_size=opt.batchsize, shuffle=False, num_workers=opt.workers)
     
-    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train-over.txt", aug=True)
+    dataset_train = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/train.txt", aug=True)
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=opt.batchsize,
                             shuffle=True, num_workers=opt.workers, pin_memory=True)
     dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False)
@@ -140,12 +140,12 @@ if __name__ == '__main__':
     # 定义网络及其他
 #    net = CNN().to(opt.device)
 #    net = mDPN92Net().to(opt.device)
-    net = mSS_UNet(pretrained=opt.pretrained).to(opt.device)
+    net = mSDNet101(pretrained=opt.pretrained).to(opt.device)
 #    net = MultiModel(['seresnext50', 'seresnext50'], [128, 64]).to(opt.device)
 #    net = SigModel('seresnext50', 128).to(opt.device)
 #    net = mResnet50(dilation=3).to(opt.device)
     
-#    state = torch.load(r"checkpoint\cnn-epoch-2-ssnet101.pkl", map_location=opt.device)
+#    state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
 #    net.load_state_dict(state['net'])
     
     # 冻结层
@@ -160,7 +160,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=opt.weight_decay)
     
 #    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(opt.epochs//8)+1, eta_min=1e-08) # 2∗Tmax为周期，在一个周期内先下降，后上升
-#    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1) # 动态改变lr
+#    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.3) # 动态改变lr
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor=0.3, patience=3, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
 #    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-3, max_lr=1, 
@@ -189,7 +189,8 @@ if __name__ == '__main__':
     best_model_loss = copy.deepcopy(net.state_dict())
     
     # 预热
-    warmup_list = [0,1]
+#    warmup_list = [0,1]
+    warmup_list = []
     warmup_len = len(dataloader_train) * len(warmup_list)
     
 #    save_path = r"E:\pic\URFC-baidu\tttt"
@@ -200,7 +201,14 @@ if __name__ == '__main__':
         loss_temp_train = Record()
         acc_temp_train = Record()
         net.train()
+        
 #        scheduler.step(epoch)
+#        
+#        if (epoch+1)%5==0:
+#            for param_group in optimizer.param_groups:
+#                param_group['weight_decay'] = param_group['weight_decay'] * 8
+#                print(param_group['weight_decay'])
+        
         for cnt, (img, visit, out_gt) in enumerate(dataloader_train, 1):
 #            torchvision.utils.save_image(img, join(save_path, r'epoch-{}-iter-{}.jpg'.format(epoch+1, cnt)))
             

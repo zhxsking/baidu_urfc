@@ -8,10 +8,10 @@ import imgaug as ia
 class Option():
     """定义网络的参数及其他"""
     def __init__(self):
-        self.epochs = 20
-        self.lr = 1e-2 # 3e-3
-        self.batchsize = 128
-        self.weight_decay = 1e-4
+        self.epochs = 32
+        self.lr = 3e-3 # 3e-3
+        self.batchsize = 64
+        self.weight_decay = 3e-3
         self.early_stop_num = 150 # acc在多少个epoch下都不提升就提前结束训练
         self.workers = 4 # 1 4 多进程，可能会卡程序
         self.pretrained = True
@@ -20,10 +20,10 @@ class Option():
         
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
-        self.num_train = 6000
+        self.num_train = 100000
         
-        self.use_tta = False
-        self.use_blend = False
+        self.use_tta = True
+        self.use_blend = True
         
         self.dir_npy_suffix = "_npy_26_24_7"
 #        self.disk = r"E:\pic\URFC-baidu"

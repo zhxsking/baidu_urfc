@@ -212,11 +212,12 @@ class mResNet18(nn.Module):
         x = self.fc(x)
         return x, x_fea
 
-class mResNet(nn.Module):
+class mResNet50(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
 #        mdl = models.resnext101_32x8d(pretrained=pretrained)
-        mdl = models.resnext50_32x4d(pretrained=pretrained)
+#        mdl = models.resnext50_32x4d(pretrained=pretrained)
+        mdl = models.resnet50(pretrained=pretrained)
         
         self.conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
@@ -263,7 +264,7 @@ class mResNet(nn.Module):
         x = self.avgpool(x)
         x_fea = x
         
-        x = x.reshape(x.size(0), -1)
+        x = x.view(x.size(0), -1)
         x = self.drop(x)
         x = self.fc(x)
         return x, x_fea
@@ -665,6 +666,59 @@ class mSSNet101(nn.Module):
         x = self.fc(x)
         
         return x, fea
+
+class mSS_D_UNet(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+        
+        # 3*100*100 -> 64*32*32
+        self.img_conv = nn.Sequential(
+                conv3x3(3, 64, stride=1, dilation=1),
+                nn.BatchNorm2d(64),
+                nn.ReLU(inplace=True),
+                Bottleneck(64, 64, stride=2, dilation=1, expansion=2, need_downsample=True),
+                Bottleneck(64*2, 64, stride=2, padding=8, expansion=1, need_downsample=True),
+                )
+        
+        self.features = UNet(in_depth=64)
+        self.features.fc = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(in_features=64, out_features=128, bias=True))
+        
+        self.visit_model=DPN26()
+        self.visit_model.linear = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(in_features=self.visit_model.linear.in_features, out_features=64, bias=True),
+                )
+        
+        self.fc = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(192, 9, bias=True),
+                )
+        
+        if (pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+    
+    def forward(self, x_img, x_vis):
+        x_vis = self.visit_model(x_vis)
+        
+        x_img = self.img_conv(x_img)
+        x_img = self.features(x_img)
+        
+        x = torch.cat((x_img, x_vis), dim=1)
+        
+        out_fea = x
+        
+        out = self.fc(x)
+ 
+        return out, out_fea
 
 class mSDNet50(nn.Module):
     '''sdnet'''
@@ -1073,7 +1127,7 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = mUNet().to(device)
+    net = mSS_D_UNet().to(device)
 #    net = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(device)
     
     from torchsummary import summary

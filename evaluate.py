@@ -17,8 +17,7 @@ from multimodal import MultiModalNet
 
 from urfc_dataset import UrfcDataset
 from urfc_utils import Logger, Record, imgProc, aug_batch, aug_val_batch, get_tta_batch
-from cnn import CNN, mResNet18, mResNet, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101
-from cnn import mDPN26, MMNet, mDPN68Net, mDPN92Net, mSSNet50, mSSNet101, mUNet, mSS_UNet
+from cnn import *
 from urfc_option import opt
 
 
@@ -137,13 +136,13 @@ if __name__ == '__main__':
     print('Loading Data...')
     dataset_val = UrfcDataset(opt.dir_img, opt.dir_visit_npy, "data/val.txt", aug=False, tta=opt.use_tta)
     dataloader_val = DataLoader(dataset=dataset_val, batch_size=512,
-                                shuffle=False, num_workers=0, pin_memory=True)
+                                shuffle=False, num_workers=1, pin_memory=True)
     
     # 加载模型
     print('Loading Model...')
     loss_func = nn.CrossEntropyLoss().to(opt.device)
     
-#    net0 = mSS_UNet().to(opt.device)
+#    net0 = mSS_D_UNet().to(opt.device)
 #    state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
 ##    state = torch.load(r"checkpoint\cnn-epoch-6.pkl", map_location=opt.device)
 #    net0.load_state_dict(state['net'])
@@ -151,29 +150,51 @@ if __name__ == '__main__':
     net1 = MMNet().to(opt.device)
     state = torch.load(r"checkpoint\best-cnn-mmnet-6779.pkl", map_location=opt.device)
     net1.load_state_dict(state['net'])
-    
-    net2 = mSSNet50().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-ssnet50-6421.pkl", map_location=opt.device)
-    net2.load_state_dict(state['net'])
-    
+#    
+#    net2 = mSSNet50().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-ssnet50-6421.pkl", map_location=opt.device)
+#    net2.load_state_dict(state['net'])
+#    
     net3 = mSDNet50_p().to(opt.device)
     state = torch.load(r"checkpoint\best-cnn-sdnet50-p-6689.pkl", map_location=opt.device)
     net3.load_state_dict(state['net'])
+#    
+#    net4 = mSSNet101().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-ssnet101-6425.pkl", map_location=opt.device)
+#    net4.load_state_dict(state['net'])
+#    
+#    net5 = mSS_UNet().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-ssunet-6308.pkl", map_location=opt.device)
+#    net5.load_state_dict(state['net'])
     
-    net4 = mSSNet101().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-ssnet101-6425.pkl", map_location=opt.device)
-    net4.load_state_dict(state['net'])
+    net7 = mSS_UNet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-ssunet-6641.pkl", map_location=opt.device)
+    net7.load_state_dict(state['net'])
     
-    net5 = mSS_UNet().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-ssunet-6308.pkl", map_location=opt.device)
-    net5.load_state_dict(state['net'])
+    net8 = mSS_UNet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-ssunet-6700.pkl", map_location=opt.device)
+    net8.load_state_dict(state['net'])
+    
+    net9 = mSENet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-senet-6927.pkl", map_location=opt.device)
+    net9.load_state_dict(state['net'])
+    
+    net10 = mSENet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-senet-6859.pkl", map_location=opt.device)
+    net10.load_state_dict(state['net'])
+    
+    net11 = mSENet().to(opt.device)
+    state = torch.load(r"checkpoint\best-cnn-senet-6846.pkl", map_location=opt.device)
+    net11.load_state_dict(state['net'])
+    
+    
     
     #%% 验证原始数据
-#    nets = [net5]
-    nets = [net1, net3, net4]
+#    nets = [net0]
+    nets = [net3, net7, net8, net9, net10, net11]
     loss_v, acc_v, labs_ori_np_v, labs_out_np_v, fea_v = eval_net(loss_func, dataloader_val, 
                                                                   opt.device, *nets, 
-                                                                  judge_res=True)
+                                                                  judge_res=False)
     
     #%% 绘制混淆矩阵, 计算acc
     cm = metrics.confusion_matrix(labs_ori_np_v, labs_out_np_v)

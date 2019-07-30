@@ -13,3 +13,4 @@ data/train.csv
 *.tar
 *.dump
 *.npy
+checkpoint/senet/senet.png
