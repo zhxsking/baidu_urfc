@@ -442,6 +442,41 @@ class mSENet(nn.Module):
  
         return out, out_fea
 
+class mEFFNet(nn.Module):
+    def __init__(self, pretrained=False):
+        super().__init__()
+        mdl = torch.hub.load('rwightman/gen-efficientnet-pytorch', 'efficientnet_b0', pretrained=False)
+        
+        self.features = mdl
+        self.features.conv_stem = nn.Conv2d(4, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        self.features.classifier = nn.Sequential(
+                nn.Dropout(0.5),
+                nn.Linear(in_features=mdl.classifier.in_features, out_features=9, bias=True),
+                )
+        
+        if not(pretrained):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.constant_(m.bias, 0)
+    
+    def forward(self, x_img, x_visit):
+        # N,7,26,24整型为N,1,56,78
+        x_visit = x_visit.reshape(x_visit.size(0), 1, 56, -1)
+        # pad为N,1,100,100
+        x_visit = nn.ConstantPad2d((11,11,22,22), 0)(x_visit)
+#        x_visit = nn.ReflectionPad2d((11,11,22,22))(x_visit)
+        
+        x = torch.cat((x_img, x_visit), dim=1)
+        
+        out = self.features(x)
+ 
+        return out, out
+
 class mUNet(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
@@ -1127,7 +1162,7 @@ if __name__ == '__main__':
     visit_depth = 7
     visit_height = 26
     visit_width = 24
-    net = mSS_D_UNet().to(device)
+    net = mEFFNet().to(device)
 #    net = MultiModalNet("se_resnext101_32x4d","dpn26",0.5).to(device)
     
     from torchsummary import summary
