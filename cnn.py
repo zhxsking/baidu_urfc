@@ -445,7 +445,7 @@ class mSENet(nn.Module):
 class mEFFNet(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
-        mdl = torch.hub.load('rwightman/gen-efficientnet-pytorch', 'efficientnet_b0', pretrained=False)
+        mdl = torch.hub.load('rwightman/gen-efficientnet-pytorch', 'efficientnet_b0', pretrained=pretrained)
         
         self.features = mdl
         self.features.conv_stem = nn.Conv2d(4, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)

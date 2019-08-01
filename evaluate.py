@@ -60,6 +60,11 @@ def eval_net(loss_func, dataloader_val, device, *nets, judge_res=False):
             else:
                 img_tta = (img,)
 
+            # 上下翻转
+#            visit = visit.numpy()
+#            visit = visit[:,:,::-1].copy()
+#            visit = torch.as_tensor(visit, dtype=torch.float32)
+            
             visit = visit.to(device)
             out_gt = out_gt.to(device)
             
@@ -167,9 +172,9 @@ if __name__ == '__main__':
 #    state = torch.load(r"checkpoint\best-cnn-ssunet-6308.pkl", map_location=opt.device)
 #    net5.load_state_dict(state['net'])
     
-    net7 = mSS_UNet().to(opt.device)
-    state = torch.load(r"checkpoint\best-cnn-ssunet-6641.pkl", map_location=opt.device)
-    net7.load_state_dict(state['net'])
+#    net7 = mSS_UNet().to(opt.device)
+#    state = torch.load(r"checkpoint\best-cnn-ssunet-6641.pkl", map_location=opt.device)
+#    net7.load_state_dict(state['net'])
     
     net8 = mSS_UNet().to(opt.device)
     state = torch.load(r"checkpoint\best-cnn-ssunet-6700.pkl", map_location=opt.device)
@@ -190,8 +195,8 @@ if __name__ == '__main__':
     
     
     #%% 验证原始数据
-#    nets = [net0]
-    nets = [net3, net7, net8, net9, net10, net11]
+    nets = [net11]
+#    nets = [net1, net3, net8, net9, net10, net11]
     loss_v, acc_v, labs_ori_np_v, labs_out_np_v, fea_v = eval_net(loss_func, dataloader_val, 
                                                                   opt.device, *nets, 
                                                                   judge_res=False)
@@ -220,10 +225,10 @@ if __name__ == '__main__':
                 task_type = 'GPU',
                 )
         model.fit(fea_v, labs_ori_np_v)
-        model.save_model(r"checkpoint\catboost_model-150.dump")
+        model.save_model(r"checkpoint\catboost_model-150-0.1.dump")
         
         model = CatBoostClassifier()
-        model.load_model(r"checkpoint\catboost_model-150.dump")
+        model.load_model(r"checkpoint\catboost_model-150-0.1.dump")
         y_pred = model.predict(fea_v)
         print('The acc of prediction is:', sum(labs_ori_np_v==y_pred.squeeze()) / len(y_pred))
     

@@ -46,6 +46,7 @@ class UrfcDataset(Dataset):
         
         if self.aug:
             img = self.augumentor(img)
+#            visit = self.augumentor_vis(visit).copy()
         
 #        def subMean(x):
 #            '''每张图减去均值，匀光'''
@@ -94,6 +95,17 @@ class UrfcDataset(Dataset):
         tfs.append(transforms.Normalize(self.means, self.stds))
         return transforms.Compose(tfs)
     
+    def augumentor_vis(self,image):
+#        sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+        augment_img = iaa.Sequential([
+#            iaa.Fliplr(0),
+            iaa.Fliplr(0.5),
+            iaa.Flipud(0.5),
+            ], random_order=True)
+
+        image_aug = augment_img.augment_image(image)
+        return image_aug
+    
     def augumentor(self,image):
 #        sometimes = lambda aug: iaa.Sometimes(0.5, aug)
         augment_img = iaa.Sequential([
@@ -122,7 +134,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     
     dataset = UrfcDataset(opt.dir_img_test, opt.dir_visit_npy_test, "data/test.txt",
-                          aug=False, mode='test', tta=True)
+                          aug=True, mode='test', tta=True)
     dataloader = DataLoader(dataset=dataset, batch_size=3, shuffle=False)
     
     for cnt, (img, visit, lab) in enumerate(dataloader, 1):

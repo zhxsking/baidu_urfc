@@ -146,7 +146,7 @@ if __name__ == '__main__':
 #    nets = [net1]
 #    nets = [net1, net3, net4]
 #    nets = [net1, net2, net3, net4, net5]
-    nets = [net3, net7, net8, net9, net10, net11]
+    nets = [net1, net3, net8, net9, net10, net11]
 #     nets = [net2, net3, net4, net6, net8, netm, netm1]
     out_lab_np, fea = predict(dataloader_test, opt.device, *nets)
     
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     if opt.use_blend:
         # blending
         model = CatBoostClassifier()
-        model.load_model(r"checkpoint\catboost_model-150.dump")
+        model.load_model(r"checkpoint\catboost_model-150-0.5.dump")
         y_pred = (model.predict(fea)).astype(np.uint8).squeeze() + 1
         res = y_pred
     else:

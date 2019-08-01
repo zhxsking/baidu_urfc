@@ -19,8 +19,7 @@ from boxx import g
 import CLR as CLR
 import OneCycle as OneCycle
 
-from cnn import CNN, mResNet18, mResNet50, mDenseNet, mSENet, mSDNet50, mSDNet50_p, mSDNet101
-from cnn import mDPN26, MMNet, mDPN68Net, mDPN92Net, mSSNet50, mSSNet101, mUNet, mSS_UNet, mSS_UNet_p, mSS_D_UNet
+from cnn import *
 from multimodel import MultiModel, SigModel
 from urfc_dataset import UrfcDataset
 from urfc_option import opt
@@ -93,7 +92,7 @@ if __name__ == '__main__':
     __spec__ = None
     log = Logger(opt.lr, opt.batchsize, opt.weight_decay, opt.num_train)
     log.open(r"data/log.txt")
-    msg = '备注：base mSDNet101' # 
+    msg = '备注：base mSENet visit aug' # 
     print(msg)
     log.write(msg)
 
@@ -140,13 +139,13 @@ if __name__ == '__main__':
     # 定义网络及其他
 #    net = CNN().to(opt.device)
 #    net = mDPN92Net().to(opt.device)
-    net = mSDNet101(pretrained=opt.pretrained).to(opt.device)
+    net = mSENet(pretrained=opt.pretrained).to(opt.device)
 #    net = MultiModel(['seresnext50', 'seresnext50'], [128, 64]).to(opt.device)
 #    net = SigModel('seresnext50', 128).to(opt.device)
 #    net = mResnet50(dilation=3).to(opt.device)
     
-#    state = torch.load(r"checkpoint\best-cnn.pkl", map_location=opt.device)
-#    net.load_state_dict(state['net'])
+    state = torch.load(r"checkpoint\cnn-epoch-7.pkl", map_location=opt.device)
+    net.load_state_dict(state['net'])
     
     # 冻结层
 #    for count, (name, param) in enumerate(net.named_parameters(), 1):
